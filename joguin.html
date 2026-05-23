@@ -1,0 +1,2573 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Loot Idle RPG</title>
+    <!-- Tailwind CSS para um design moderno e responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts com estilo retro/pixelado -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <!-- FontAwesome para Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'VT323', monospace;
+            background-color: #000000; /* Fundo Preto Absoluto */
+            color: #f8fafc;
+            image-rendering: pixelated;
+            overflow-x: hidden;
+        }
+        /* Estilo pixel art para caixas e botões */
+        .pixel-border {
+            border: 4px solid #1e293b;
+            box-shadow: 0 4px 0 #000;
+        }
+        .pixel-btn {
+            border: 4px solid #000;
+            box-shadow: 0 4px 0 #000;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .pixel-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #000;
+        }
+        
+        /* Efeito de Tela CRT de fliperama retro com background espacial pixelado */
+        .crt-screen {
+            position: relative;
+            background: #020205;
+            border: 6px solid #1e293b;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.95), 0 0 15px rgba(6, 182, 212, 0.1);
+            overflow: hidden;
+        }
+        /* Estrelas piscando e montanhas de pixel ao fundo */
+        .crt-bg-stars {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                radial-gradient(1px 1px at 20px 30px, #fff, transparent),
+                radial-gradient(1.5px 1.5px at 100px 80px, #fff, transparent),
+                radial-gradient(1px 1px at 180px 150px, #fff, transparent),
+                radial-gradient(2px 2px at 280px 60px, #a855f7, transparent),
+                radial-gradient(1px 1px at 350px 120px, #fff, transparent),
+                radial-gradient(1.5px 1.5px at 450px 40px, #60a5fa, transparent),
+                radial-gradient(1px 1px at 580px 160px, #fff, transparent),
+                radial-gradient(2px 2px at 680px 90px, #fff, transparent),
+                radial-gradient(1.5px 1.5px at 750px 180px, #eab308, transparent);
+            background-size: 800px 300px;
+            opacity: 0.35;
+            z-index: 1;
+        }
+        
+        .crt-screen::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+            z-index: 10;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+
+        /* Animações de combate de pixel art */
+        @keyframes attackSword {
+            0% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(-25px) rotate(-20deg); }
+            50% { transform: translateX(60px) rotate(30deg); }
+            100% { transform: translateX(0) rotate(0deg); }
+        }
+        @keyframes attackBow {
+            0% { transform: translateX(0) scale(1); }
+            25% { transform: translateX(-15px) scale(0.9); }
+            50% { transform: translateX(20px) scale(1.15); }
+            100% { transform: translateX(0) scale(1); }
+        }
+        @keyframes hitAnimation {
+            0% { transform: translateX(0) scale(1); filter: brightness(2.5) sepia(1) hue-rotate(-50deg) saturate(10); }
+            20% { transform: translateX(15px) rotate(8deg); }
+            40% { transform: translateX(-15px) rotate(-8deg); }
+            60% { transform: translateX(10px) rotate(5deg); }
+            80% { transform: translateX(-10px) rotate(-5deg); }
+            100% { transform: translateX(0) scale(1); filter: none; }
+        }
+
+        /* Flutuação suave dos Pets */
+        @keyframes floatPet {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(3deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+
+        .animate-sword { animation: attackSword 0.25s ease-out; }
+        .animate-bow { animation: attackBow 0.2s ease-out; }
+        .animate-hit { animation: hitAnimation 0.3s ease-out; }
+        .animate-float-pet { animation: floatPet 2.5s ease-in-out infinite; }
+
+        /* Popups de dano flutuantes */
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-80px) scale(0.8); opacity: 0; }
+        }
+        .dmg-popup {
+            position: absolute;
+            animation: floatUp 0.8s forwards;
+            pointer-events: none;
+            font-size: 32px;
+            font-weight: bold;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-3 bg-black">
+
+    <header class="w-full max-w-7xl mx-auto flex flex-wrap justify-between items-center bg-zinc-950 p-3 rounded-lg border-2 border-zinc-900 gap-3 mb-2">
+        <div class="flex items-center gap-3">
+            <div class="text-3xl text-yellow-400">💀</div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-wider text-yellow-400 leading-none">LOOT QUEST IDLE: SKELETON</h1>
+                <p class="text-sm text-zinc-500 font-sans">O RPG incremental definitivo de caça ao tesouro</p>
+            </div>
+        </div>
+        
+        <!-- Moedas, poeira e botões superiores de gerenciamento -->
+        <div class="flex items-center gap-6 text-xl">
+            <div class="flex items-center gap-2 bg-zinc-900 px-3 py-1 rounded border border-zinc-800">
+                <span class="text-yellow-500 font-bold font-sans">Ouro:</span>
+                <span id="txt-ouro" class="font-bold">0</span>
+            </div>
+            <div class="flex items-center gap-2 bg-zinc-900 px-3 py-1 rounded border border-zinc-800">
+                <span class="text-purple-400 font-bold font-sans">Poeira:</span>
+                <span id="txt-poeira" class="font-bold">0</span>
+            </div>
+            <div class="flex items-center gap-2 bg-zinc-900 px-3 py-1 rounded border border-zinc-800" id="header-fragmentos-container" style="display: none;">
+                <span class="text-teal-400 font-bold font-sans">Almas:</span>
+                <span id="txt-fragmentos" class="font-bold">0</span>
+            </div>
+            <div class="flex items-center gap-3 border-l border-zinc-800 pl-4">
+                <!-- Botão de Talentos Dinâmicos -->
+                <button onclick="abrirModalTalentos()" class="relative px-3 py-0.5 bg-yellow-950 hover:bg-yellow-900 text-yellow-300 rounded text-sm border border-yellow-800 transition-colors font-sans flex items-center gap-1">
+                    ⭐ Talentos (<span id="txt-pontos-disponiveis-btn" class="font-bold">0</span>)
+                </button>
+                <button onclick="toggleAudio()" id="btn-audio" class="px-2.5 py-0.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 rounded text-sm border border-emerald-800 transition-colors font-sans">
+                    Sons: LIGADO
+                </button>
+                <button onclick="abrirModalBackup()" class="text-xs bg-cyan-950 hover:bg-cyan-900 text-cyan-200 px-2.5 py-0.5 rounded border border-cyan-850 transition-colors font-sans">
+                    <i class="fa-solid fa-floppy-disk"></i> Backup
+                </button>
+                <button onclick="abrirModalReset()" class="text-xs bg-red-950 hover:bg-red-900 text-red-200 px-2.5 py-0.5 rounded border border-red-800 transition-colors font-sans">
+                    <i class="fa-solid fa-trash"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTAINER DA ARENA DE BATALHA -->
+    <main class="w-full max-w-7xl mx-auto flex flex-col gap-3 flex-grow mb-2">
+        
+        <!-- PARTE SUPERIOR (2/3) - ARENA DE BATALHA RETRO -->
+        <section class="crt-screen rounded-lg flex flex-col justify-between p-4 flex-grow min-h-[420px] md:min-h-[480px]">
+            <div class="crt-bg-stars"></div>
+            
+            <!-- Barra de Cabeçalho do Combate -->
+            <div class="flex justify-between items-center z-10 border-b border-zinc-800/60 pb-2">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl text-cyan-400 font-bold tracking-widest bg-zinc-950/80 px-3 py-1 rounded border border-zinc-800">
+                        ESTÁGIO <span id="combate-estagio">1</span>
+                    </span>
+                    <span id="heroi-postura" class="text-sm bg-zinc-950/80 text-zinc-400 px-3 py-1 rounded border border-zinc-800 font-sans">Sem Arma</span>
+                </div>
+                <div class="text-xl text-yellow-500 font-bold bg-zinc-950/80 px-3 py-1 rounded border border-zinc-800 empty:hidden" id="combate-boss-banner"></div>
+            </div>
+
+            <!-- Palco Principal: Herói (Esqueleto) vs Vilão -->
+            <div class="relative flex justify-around items-center my-auto py-4 z-10 w-full max-w-4xl mx-auto">
+                <!-- Herói (Esqueleto) com Pet Flutuante ao lado -->
+                <div class="text-center relative flex flex-col items-center">
+                    <!-- Container do Pet Flutuante -->
+                    <div id="visual-pet" class="absolute -top-8 -right-6 w-12 h-12 z-20 animate-float-pet hidden">
+                        <!-- SVG do Pet Ativo carregado dinamicamente -->
+                    </div>
+                    <div id="visual-heroi" class="w-32 h-32 md:w-40 md:h-40 transition-all duration-100 flex items-center justify-center filter drop-shadow-[0_0_8px_rgba(6,182,212,0.3)]">
+                        <!-- SVG gerado dinamicamente -->
+                    </div>
+                    <p class="text-xl text-cyan-400 mt-2 font-bold tracking-widest bg-zinc-950/90 px-3 py-0.5 rounded border border-cyan-950">ESQUELETO</p>
+                </div>
+
+                <!-- Efeito Estético Versus -->
+                <div class="text-4xl text-zinc-800 font-bold font-sans italic opacity-40 select-none">VS</div>
+
+                <!-- Monstro -->
+                <div class="text-center relative flex flex-col items-center">
+                    <div id="visual-monstro" class="w-32 h-32 md:w-40 md:h-40 transition-all duration-100 flex items-center justify-center filter drop-shadow-[0_0_8px_rgba(239,68,68,0.3)]">
+                        <!-- SVG gerado dinamicamente -->
+                    </div>
+                    <p id="txt-monstro-nome" class="text-xl text-red-400 mt-2 font-bold truncate max-w-[200px] tracking-widest bg-zinc-950/90 px-3 py-0.5 rounded border border-red-950">Monstro</p>
+                </div>
+
+                <!-- Popups de dano aparecem aqui -->
+                <div id="popups-container" class="absolute inset-0 pointer-events-none z-20"></div>
+            </div>
+
+            <!-- Console de Status de Combate do CRT com as 3 barras principais de status -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center z-10 bg-zinc-950/90 p-3 rounded-lg border border-zinc-900">
+                <!-- HP Herói -->
+                <div class="md:col-span-4">
+                    <div class="flex justify-between text-base text-emerald-400 font-bold mb-1">
+                        <span>HP DO SQUELETON</span>
+                        <span id="txt-heroi-hp">100 / 100</span>
+                    </div>
+                    <div class="w-full bg-black h-4 border border-zinc-800 rounded overflow-hidden">
+                        <div id="bar-heroi-hp" class="bg-emerald-600 h-full transition-all duration-75" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <!-- HP Monstro -->
+                <div class="md:col-span-4">
+                    <div class="flex justify-between text-base text-red-500 font-bold mb-1">
+                        <span>HP DO ADVERSÁRIO</span>
+                        <span id="txt-monstro-hp">25 / 25</span>
+                    </div>
+                    <div class="w-full bg-black h-4 border border-zinc-800 rounded overflow-hidden">
+                        <div id="bar-monstro-hp" class="bg-red-700 h-full transition-all duration-75" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <!-- Barra do Tempo de Ataque do Herói -->
+                <div class="md:col-span-4">
+                    <div class="flex justify-between text-sm text-zinc-500 mb-1">
+                        <span>AUTO-ATAQUE EM ANDAMENTO</span>
+                        <span id="txt-tempo-ataque">0s / 1.5s</span>
+                    </div>
+                    <div class="w-full bg-black h-4 border border-zinc-800 rounded overflow-hidden">
+                        <div id="bar-tempo-ataque" class="bg-cyan-600 h-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PARTE INFERIOR (1/3) - PAINEL DE COMANDO (ITENS, XP, BAÚ, UPGRADES) -->
+        <section class="grid grid-cols-1 md:grid-cols-12 gap-3 min-h-[250px]">
+            
+            <!-- COLUNA 1: HERÓI, XP E EQUIPAMENTOS -->
+            <div class="md:col-span-5 bg-zinc-950 p-3 rounded-lg border-2 border-zinc-900 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center border-b border-zinc-800 pb-1 mb-2">
+                        <h2 class="text-lg text-cyan-400 font-bold"><i class="fa-solid fa-user-shield"></i> SQUELETON (Nv. <span id="heroi-level">1</span>)</h2>
+                        
+                        <!-- Mini XP Bar integrada -->
+                        <div class="flex items-center gap-2 w-1/2">
+                            <span class="text-xs text-zinc-500 font-sans" id="heroi-xp-txt">0/100</span>
+                            <div class="flex-grow bg-black h-2.5 border border-zinc-800 rounded overflow-hidden">
+                                <div id="heroi-xp-bar" class="bg-cyan-500 h-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Atributos Avançados -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-1 bg-black/50 p-2 rounded border border-zinc-900 text-[13px] mb-2 font-sans">
+                        <div class="flex justify-between">
+                            <span class="text-zinc-500">Dano:</span>
+                            <span id="stat-dano" class="text-white font-bold font-mono">10</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-zinc-500">Recarga:</span>
+                            <span id="stat-vel" class="text-white font-bold font-mono">1.5s</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-zinc-500">HP Máx:</span>
+                            <span id="stat-vida" class="text-emerald-400 font-bold font-mono">100</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-zinc-500">Crítico:</span>
+                            <span id="stat-crit" class="text-yellow-400 font-bold font-mono">5%</span>
+                        </div>
+                        <div class="flex justify-between col-span-1">
+                            <span class="text-zinc-500">Evasão:</span>
+                            <span id="stat-evasao" class="text-cyan-400 font-bold font-mono">0%</span>
+                        </div>
+                        <div class="flex justify-between col-span-1">
+                            <span class="text-zinc-500">Atq. Duplo:</span>
+                            <span id="stat-atq-duplo" class="text-purple-400 font-bold font-mono">0%</span>
+                        </div>
+                        <div class="flex justify-between col-span-3 border-t border-zinc-900/60 pt-0.5">
+                            <span class="text-zinc-500">Mult. Dano Crítico:</span>
+                            <span id="stat-dano-crit" class="text-yellow-500 font-bold font-mono">200%</span>
+                        </div>
+                    </div>
+
+                    <!-- Equipamentos Ativos (7 Slots!) -->
+                    <h3 class="text-sm text-yellow-500 mb-1 font-bold"><i class="fa-solid fa-shield"></i> EQUIPAMENTOS ATIVOS</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-1 text-[11px] font-sans">
+                        <!-- ARMA -->
+                        <div id="slot-arma" class="bg-black p-1.5 rounded border border-zinc-900 cursor-pointer hover:border-zinc-800 transition-colors" onclick="mostrarInfoEquipado('arma')">
+                            <p class="text-[9px] text-zinc-600 font-sans leading-none uppercase">ARMA</p>
+                            <p class="font-bold text-zinc-500 truncate text-[11px]" id="slot-arma-nome">Nenhuma</p>
+                        </div>
+                        <!-- ELMO -->
+                        <div id="slot-elmo" class="bg-black p-1.5 rounded border border-zinc-900 cursor-pointer hover:border-zinc-800 transition-colors" onclick="mostrarInfoEquipado('elmo')">
+                            <p class="text-[9px] text-zinc-600 font-sans leading-none uppercase">ELMO</p>
+                            <p class="font-bold text-zinc-500 truncate text-[11px]" id="slot-elmo-nome">Nenhum</p>
+                        </div>
+                        <!-- COLAR -->
+                        <div id="slot-colar" class="bg-black p-1.5 rounded border border-zinc-900 cursor-pointer hover:border-zinc-800 transition-colors" onclick="mostrarInfoEquipado('colar')">
+                            <p class="text-[9px] text-zinc-600 font-sans leading-none uppercase">COLAR</p>
+                            <p class="font-bold text-zinc-500 truncate text-[11px]" id="slot-colar-nome">Nenhum</p>
+                        </div>
+                        <!-- PEITORAL / ARMADURA -->
+                        <div id="slot-peitoral" class="bg-black p-1.5 rounded border border-zinc-900 cursor-pointer hover:border-zinc-800 transition-colors" onclick="mostrarInfoEquipado('peitoral')">
+                            <p class="text-[9px] text-zinc-600 font-sans leading-none uppercase">PEITORAL</p>
+                            <p class="font-bold text-zinc-500 truncate text-[11px]" id="slot-peitoral-nome">Nenhum</p>
+                        </div>
+                        <!-- CALÇA -->
+                        <div id="slot-calca" class="bg-black p-1.5 rounded border border-zinc-900 cursor-pointer hover:border-zinc-800 transition-colors" onclick="mostrarInfoEquipado('calca')">
+                            <p class="text-[9px] text-zinc-600 font-sans leading-none uppercase">CALÇA</p>
+                            <p class="font-bold text-zinc-500 truncate text-[11px]" id="slot-calca-nome">Nenhuma</p>
+                        </div>
+                        <!-- BOTA -->
+                        <div id="slot-bota" class="bg-black p-1.5 rounded border border-zinc-900 cursor-pointer hover:border-zinc-800 transition-colors" onclick="mostrarInfoEquipado('bota')">
+                            <p class="text-[9px] text-zinc-600 font-sans leading-none uppercase">BOTA</p>
+                            <p class="font-bold text-zinc-500 truncate text-[11px]" id="slot-bota-nome">Nenhuma</p>
+                        </div>
+                        <!-- ANEL -->
+                        <div id="slot-anel" class="bg-black p-1.5 rounded border border-zinc-900 cursor-pointer hover:border-zinc-800 transition-colors" onclick="mostrarInfoEquipado('anel')">
+                            <p class="text-[9px] text-zinc-600 font-sans leading-none uppercase">ANEL</p>
+                            <p class="font-bold text-zinc-500 truncate text-[11px]" id="slot-anel-nome">Nenhum</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUNA 2: CENTRAL DE BAÚS E COMPARADOR DE LOOT -->
+            <div class="md:col-span-4 bg-zinc-950 p-3 rounded-lg border-2 border-zinc-900 flex flex-col justify-between">
+                <div class="grid grid-cols-12 gap-2 h-full items-center">
+                    
+                    <!-- Lado Esquerdo: Pilha de baús -->
+                    <div class="col-span-5 bg-black/60 p-2 rounded border border-zinc-900 text-center flex flex-col justify-center h-full">
+                        <p class="text-xs text-zinc-500 uppercase tracking-wider">Baús</p>
+                        <div class="text-4xl my-1 animate-bounce">📦</div>
+                        <p class="text-2xl font-bold text-yellow-400" id="txt-total-baus">0</p>
+                        <button onclick="abrirBau()" id="btn-abrir-bau" class="mt-1 w-full bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-1 text-sm rounded border-2 border-yellow-400 active:scale-95 transition-all font-sans">
+                            ABRIR BAÚ
+                        </button>
+                        
+                        <!-- Filtro Avançado de Auto-Venda Expansível -->
+                        <button onclick="toggleFiltro()" class="mt-2 w-full bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-[11px] font-sans py-1 rounded border border-zinc-800 transition-colors">
+                            ⚙️ Filtro Auto-Venda
+                        </button>
+                        
+                        <!-- Botão de ver Raridades & Chances -->
+                        <button onclick="abrirModalRaridades()" class="mt-1 w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 text-[11px] font-sans py-1 rounded border border-zinc-800 transition-colors">
+                            📋 Chances & Raridades
+                        </button>
+                    </div>
+
+                    <!-- Lado Direito: Comparador ou painel de loot -->
+                    <div class="col-span-7 h-full flex items-center justify-center">
+                        <!-- Painel do Filtro de Auto-venda (Ocultável) -->
+                        <div id="painel-filtro" class="hidden w-full bg-black border border-zinc-850 p-2 rounded h-full flex flex-col justify-between font-sans text-xs">
+                            <div>
+                                <h4 class="text-cyan-400 font-bold border-b border-zinc-900 pb-0.5 mb-1.5 uppercase tracking-wider text-[11px]">⚙️ Filtro de Auto-Reciclagem</h4>
+                                <label class="text-[10px] text-zinc-500 block mb-1">Vender itens abaixo ou igual a:</label>
+                                <select id="select-filtro-raridade" onchange="atualizarFiltro()" class="w-full bg-zinc-950 border border-zinc-800 rounded p-1 text-[11px] text-white focus:outline-none mb-2">
+                                    <option value="nenhum">Desativado (Manual)</option>
+                                    <option value="comum">Comum</option>
+                                    <option value="incomum">Incomum</option>
+                                    <option value="raro">Raro</option>
+                                    <option value="epico">Épico</option>
+                                    <option value="mistico">Místico</option>
+                                    <option value="lendario">Lendário</option>
+                                </select>
+                                
+                                <p class="text-[10px] text-zinc-500 mb-1">Ignorar e preservar se houver:</p>
+                                <div class="grid grid-cols-2 gap-x-1 gap-y-1 text-[10px] text-zinc-300">
+                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="chk-pres-crit" onchange="atualizarFiltro()" class="accent-cyan-500"> Crítico</label>
+                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="chk-pres-evasao" onchange="atualizarFiltro()" class="accent-cyan-500"> Evasão</label>
+                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="chk-pres-atq-duplo" onchange="atualizarFiltro()" class="accent-cyan-500"> Atq Duplo</label>
+                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="chk-pres-dano-crit" onchange="atualizarFiltro()" class="accent-cyan-500"> Dano Crit</label>
+                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="chk-pres-vida" onchange="atualizarFiltro()" class="accent-cyan-500"> Vida</label>
+                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="chk-pres-dano" onchange="atualizarFiltro()" class="accent-cyan-500"> Dano</label>
+                                </div>
+                            </div>
+                            <button onclick="toggleFiltro()" class="w-full bg-zinc-900 text-zinc-400 py-1 rounded text-[10px] uppercase font-bold tracking-wider mt-1 border border-zinc-850">Fechar Config.</button>
+                        </div>
+
+                        <!-- Painel de Exibição de Loot normal -->
+                        <div id="painel-loot" class="hidden w-full bg-black border border-zinc-800 p-2 rounded h-full flex flex-col justify-between">
+                            <div class="overflow-y-auto max-h-[170px] pr-1">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-[10px] uppercase px-1.5 py-0.5 rounded font-sans font-bold leading-none" id="loot-raridade">Lendário</span>
+                                    <span class="text-xs text-zinc-500 font-sans" id="loot-tipo">Arma</span>
+                                </div>
+                                
+                                <!-- Container do ícone pixel art do item -->
+                                <div id="loot-icon-wrapper" class="w-12 h-12 mx-auto my-1 bg-zinc-950 border border-zinc-900 rounded p-1 flex items-center justify-center">
+                                    <!-- Renderizado dinamicamente -->
+                                </div>
+
+                                <h3 class="text-base font-bold leading-tight truncate text-center" id="loot-nome">Super Espada</h3>
+                                
+                                <div class="my-1.5 text-xs space-y-0.5" id="loot-atributos">
+                                    <!-- Gerado dinamicamente -->
+                                </div>
+                            </div>
+
+                            <!-- Botões de Ação de Loot -->
+                            <div class="grid grid-cols-2 gap-1.5 mt-1 font-sans">
+                                <button id="btn-loot-acao-equipar" onclick="equiparLoot()" class="bg-emerald-900 hover:bg-emerald-800 border border-emerald-600 text-white py-1 text-sm font-bold rounded">
+                                    EQUIPAR
+                                </button>
+                                <button onclick="venderLoot()" class="bg-red-950 hover:bg-red-900 border border-red-800 text-white py-1 text-sm font-bold rounded">
+                                    VENDER
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="painel-loot-vazio" class="text-center text-zinc-600 text-xs p-3 border border-dashed border-zinc-900 rounded w-full h-full flex items-center justify-center font-sans">
+                            Clique em "Abrir Baú" para visualizar novos equipamentos.
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- COLUNA 3: MELHORIAS, PETS E REENCARNAÇÃO -->
+            <div class="md:col-span-3 bg-zinc-950 p-3 rounded-lg border-2 border-zinc-900 flex flex-col justify-between">
+                <div>
+                    <!-- Abas de Navegação -->
+                    <div class="flex border-b border-zinc-900 gap-1 mb-2 text-sm font-sans">
+                        <button onclick="mudarAba('loja')" id="tab-loja" class="flex-1 text-center py-1 bg-zinc-900 border-t border-x border-zinc-800 text-cyan-400 font-bold rounded-t">LOJA</button>
+                        <button onclick="mudarAba('pets')" id="tab-pets" class="flex-1 text-center py-1 bg-black border-b border-zinc-900 text-zinc-500 font-bold rounded-t">PETS</button>
+                        <button onclick="mudarAba('reincarnar')" id="tab-reincarnar" class="flex-1 text-center py-1 bg-black border-b border-zinc-900 text-zinc-500 font-bold rounded-t">ALMA</button>
+                    </div>
+
+                    <!-- Conteúdo: LOJA DE UPGRADES -->
+                    <div id="conteudo-loja" class="space-y-1.5">
+                        <button onclick="comprarUpgradeBau()" class="w-full bg-black hover:bg-zinc-900 border border-zinc-900 text-left p-1.5 rounded flex justify-between items-center transition-colors">
+                            <div class="max-w-[70%]">
+                                <p class="text-sm font-bold text-yellow-500 leading-none">Raridade Baú (Nv <span id="up-bau-nv">1</span>)</p>
+                                <p class="text-[10px] text-zinc-600 font-sans leading-none mt-0.5">Melhora a taxa de drops raros</p>
+                            </div>
+                            <span class="text-sm font-bold text-yellow-500" id="up-bau-custo">50 Ouro</span>
+                        </button>
+                    </div>
+
+                    <!-- Conteúdo: COMPANHEIROS / PETS -->
+                    <div id="conteudo-pets" class="hidden space-y-1.5 font-sans">
+                        <!-- Morceguinho -->
+                        <div class="bg-black border border-zinc-900 p-1.5 rounded flex justify-between items-center text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="text-base">🦇</span>
+                                <div>
+                                    <p class="font-bold text-purple-300 leading-none">Morceguinho (Nv <span id="pet-bat-nv">0</span>)</p>
+                                    <p class="text-[9px] text-zinc-500 leading-none mt-0.5">Cura: +0.5% do Max HP + 1% Dano p/ Nv</p>
+                                </div>
+                            </div>
+                            <button onclick="uparPet('bat')" id="btn-up-bat" class="bg-purple-900 hover:bg-purple-800 text-white font-bold py-1 px-2 rounded text-[10px]">100 Poeira</button>
+                        </div>
+                        <!-- Fantasma -->
+                        <div class="bg-black border border-zinc-900 p-1.5 rounded flex justify-between items-center text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="text-base">👻</span>
+                                <div>
+                                    <p class="font-bold text-cyan-300 leading-none">Fantasma (Nv <span id="pet-ghost-nv">0</span>)</p>
+                                    <p class="text-[9px] text-zinc-500 leading-none mt-0.5">Evasão +1.5% p/ nível</p>
+                                </div>
+                            </div>
+                            <button onclick="uparPet('ghost')" id="btn-up-ghost" class="bg-cyan-900 hover:bg-cyan-800 text-white font-bold py-1 px-2 rounded text-[10px]">100 Poeira</button>
+                        </div>
+                        <!-- Slime Ouro -->
+                        <div class="bg-black border border-zinc-900 p-1.5 rounded flex justify-between items-center text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="text-base">🪙</span>
+                                <div>
+                                    <p class="font-bold text-yellow-300 leading-none">Slime de Ouro (Nv <span id="pet-slime-nv">0</span>)</p>
+                                    <p class="text-[9px] text-zinc-500 leading-none mt-0.5">Ouro de monstros +8% p/ nível</p>
+                                </div>
+                            </div>
+                            <button onclick="uparPet('slime')" id="btn-up-slime" class="bg-yellow-900 hover:bg-yellow-800 text-black font-bold py-1 px-2 rounded text-[10px]">100 Poeira</button>
+                        </div>
+                        
+                        <!-- Selecionar Pet Ativo -->
+                        <div class="pt-2 border-t border-zinc-900">
+                            <label class="text-[10px] text-zinc-500 block mb-1">Equipar Pet de Estimação:</label>
+                            <select id="select-pet-ativo" onchange="selecionarPetAtivo()" class="w-full bg-black border border-zinc-800 rounded p-1 text-xs text-white focus:outline-none">
+                                <option value="nenhum">Nenhum</option>
+                                <option value="bat">Morceguinho 🦇</option>
+                                <option value="ghost">Fantasma 👻</option>
+                                <option value="slime">Slime de Ouro 🪙</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Conteúdo: REENCARNAÇÃO / ALTAR DE ALMAS -->
+                    <div id="conteudo-reincarnar" class="hidden text-center font-sans">
+                        <div id="reincarnar-bloqueado" class="text-zinc-600 text-xs py-4">
+                            🔒 Desbloqueia permanentemente após derrotar o Chefe do Estágio 100.
+                        </div>
+                        
+                        <div id="reincarnar-disponivel" class="hidden text-left space-y-2">
+                            <div class="bg-black/60 p-2 border border-zinc-900 rounded text-center mb-1">
+                                <p class="text-xs text-zinc-400">Desintegrar os ossos do seu esqueleto em troca de almas...</p>
+                                <button onclick="triggerReencarnacao()" class="mt-2 w-full bg-teal-800 hover:bg-teal-700 text-white font-bold py-1.5 rounded text-sm transition-all border border-teal-500">
+                                    REENCARNAR (+<span id="alma-recompensa-calculada">0</span> Almas)
+                                </button>
+                            </div>
+                            
+                            <p class="text-[10px] text-teal-400 uppercase tracking-widest font-bold">Bençãos de Almas Estáveis:</p>
+                            <!-- Força -->
+                            <div class="bg-black p-1.5 border border-zinc-900 rounded flex justify-between items-center text-xs">
+                                <div>
+                                    <p class="font-bold text-white">Força Óssea (Nv <span id="soul-forca-nv">0</span>/10)</p>
+                                    <p class="text-[9px] text-zinc-500">+1.5% Dano Global por nível</p>
+                                </div>
+                                <button onclick="comprarSoulBlessing('forca')" id="btn-soul-forca" class="bg-teal-900 hover:bg-teal-800 text-white font-bold py-1 px-1.5 rounded text-[9px]">1 Frag.</button>
+                            </div>
+                            <!-- Vitalidade -->
+                            <div class="bg-black p-1.5 border border-zinc-900 rounded flex justify-between items-center text-xs">
+                                <div>
+                                    <p class="font-bold text-white">Cálcio Vital (Nv <span id="soul-vitalidade-nv">0</span>/10)</p>
+                                    <p class="text-[9px] text-zinc-500">+2% HP Máximo por nível</p>
+                                </div>
+                                <button onclick="comprarSoulBlessing('vitalidade')" id="btn-soul-vitalidade" class="bg-teal-900 hover:bg-teal-800 text-white font-bold py-1 px-1.5 rounded text-[9px]">1 Frag.</button>
+                            </div>
+                            <!-- Fortuna -->
+                            <div class="bg-black p-1.5 border border-zinc-900 rounded flex justify-between items-center text-xs">
+                                <div>
+                                    <p class="font-bold text-white">Fortuna do Túmulo (Nv <span id="soul-fortuna-nv">0</span>/10)</p>
+                                    <p class="text-[9px] text-zinc-500">+1.5% de Chance de Baú por nível</p>
+                                </div>
+                                <button onclick="comprarSoulBlessing('fortuna')" id="btn-soul-fortuna" class="bg-teal-900 hover:bg-teal-800 text-white font-bold py-1 px-1.5 rounded text-[9px]">1 Frag.</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- FOOTER / NOTIFICAÇÕES -->
+    <footer class="w-full max-w-7xl mx-auto bg-zinc-950 p-2.5 rounded-lg border-2 border-zinc-900 text-center relative overflow-hidden">
+        <p id="footer-logs" class="text-sm text-zinc-500 transition-all duration-300">
+            Dica de Combate: Espadas aumentam significativamente o HP do esqueleto. Arcos dão velocidade e acertos críticos letais!
+        </p>
+    </footer>
+
+    <!-- MODAL CUSTOMIZADO PARA RESET DE JOGO -->
+    <div id="modal-reset" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div class="bg-zinc-950 border-4 border-red-900 p-6 rounded-lg max-w-sm text-center pixel-border">
+            <h3 class="text-2xl text-red-500 font-bold mb-4">🚨 APAGAR PROGRESSO?</h3>
+            <p class="text-zinc-400 mb-6 font-sans">Isso irá deletar permanentemente todos os seus itens, ouro, melhorias e conquistas de estágio!</p>
+            <div class="flex gap-4">
+                <button onclick="confirmarResetarJogo()" class="flex-1 bg-red-800 hover:bg-red-700 text-white font-bold py-2 rounded font-sans">SIM, RESETAR</button>
+                <button onclick="fecharModalReset()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-2 rounded font-sans">CANCELAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE BACKUP (EXPORTAR/IMPORTAR SAVE) -->
+    <div id="modal-backup" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div class="bg-zinc-950 border-4 border-cyan-900 p-6 rounded-lg max-w-sm w-full text-center pixel-border font-sans">
+            <h3 class="text-2xl text-cyan-400 font-bold mb-2 font-mono">💾 BACKUP DE SAVE</h3>
+            <p class="text-xs text-zinc-400 mb-4">Seu jogo salva automaticamente! Use o código abaixo caso queira transferir para outro navegador ou manter uma cópia física segura.</p>
+            
+            <textarea id="txt-backup-code" class="w-full h-20 bg-black border border-zinc-800 rounded p-2 text-xs font-mono text-zinc-300 mb-4 resize-none select-all focus:outline-none" readonly></textarea>
+            
+            <div class="flex gap-2 mb-4">
+                <button onclick="copiarCodigoSave()" class="flex-1 bg-cyan-800 hover:bg-cyan-700 text-white font-bold py-1.5 rounded text-sm transition-colors">COPIAR</button>
+                <button onclick="prepararImportacao()" class="flex-1 bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-1.5 rounded text-sm transition-colors">IMPORTAR</button>
+            </div>
+            
+            <div id="import-area" class="hidden mb-4 border-t border-zinc-900 pt-3">
+                <p class="text-xs text-yellow-500 mb-2">Cole o código de backup abaixo:</p>
+                <textarea id="txt-import-code" class="w-full h-20 bg-black border border-zinc-800 rounded p-2 text-xs font-mono text-zinc-300 mb-2 resize-none focus:outline-none" placeholder="Cole o código aqui..."></textarea>
+                <button onclick="confirmarImportacao()" class="w-full bg-emerald-800 hover:bg-emerald-750 text-white font-bold py-1.5 rounded text-sm transition-colors">CONFIRMAR</button>
+            </div>
+            
+            <button onclick="fecharModalBackup()" class="w-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white font-bold py-1.5 rounded text-sm transition-colors">FECHAR</button>
+        </div>
+    </div>
+
+    <!-- MODAL PARA MOSTRAR CHANCES DE RARIDADES -->
+    <div id="modal-raridades" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div class="bg-zinc-950 border-4 border-cyan-900 p-5 rounded-lg max-w-md w-full pixel-border">
+            <h3 class="text-2xl text-cyan-400 font-bold mb-2 text-center">📋 CHANCES DE DROP E RARIDADES</h3>
+            <p class="text-xs text-zinc-500 text-center font-sans mb-4">Baseado no seu nível atual de upgrade do Baú: <span class="text-yellow-500 font-bold font-mono" id="modal-level-bau-indicator">Nv 1</span></p>
+            
+            <div class="max-h-72 overflow-y-auto space-y-2 pr-1" id="modal-raridades-lista">
+                <!-- Inserido de forma dinâmica via JavaScript -->
+            </div>
+            
+            <button onclick="fecharModalRaridades()" class="mt-4 w-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white font-bold py-1.5 rounded transition-all">
+                FECHAR GUIA
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL DA ÁRVORE DE TALENTOS -->
+    <div id="modal-talentos" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+        <div class="bg-zinc-950 border-4 border-yellow-700 p-6 rounded-lg max-w-2xl w-full pixel-border">
+            <div class="flex justify-between items-center border-b border-zinc-800 pb-2 mb-4">
+                <h3 class="text-2xl text-yellow-400 font-bold">⭐ ÁRVORE DE TALENTOS DO ESQUELETO</h3>
+                <button onclick="fecharModalTalentos()" class="text-red-400 hover:text-red-300 font-bold text-xl font-sans">FECHAR [X]</button>
+            </div>
+
+            <p class="text-zinc-400 text-xs mb-4 font-sans leading-relaxed">
+                Você ganha <strong>1 Ponto de Talento por nível do Esqueleto</strong>. Aloque os seus pontos para moldar a sua build definitiva focada em puro dano de combate ou na eficiência suprema de loots, baús e ouro!
+            </p>
+
+            <div class="bg-zinc-900 p-2.5 rounded border border-zinc-800 flex justify-between items-center mb-4 text-sm">
+                <span class="text-yellow-400 font-bold">PONTOS DISPONÍVEIS: <span id="txt-pontos-disponiveis" class="text-xl">0</span></span>
+                <button onclick="resetarTalentos()" class="bg-red-900 hover:bg-red-800 text-white font-bold py-1 px-3 rounded text-xs transition-colors font-sans">
+                    🔄 Resetar Talentos (Grátis)
+                </button>
+            </div>
+
+            <!-- Divisão da Árvore de Talentos em 2 lados principais (Dano vs Loot) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-sans text-xs">
+                <!-- LADO ESQUERDO: ⚔️ CAMINHO DO COMBATE (Dano) -->
+                <div class="bg-black/60 p-3 rounded border border-red-950">
+                    <h4 class="text-red-400 font-bold text-sm border-b border-red-900 pb-1 mb-3 flex items-center gap-1">
+                        ⚔️ CAMINHO DO COMBATE
+                    </h4>
+                    <div class="space-y-3">
+                        <!-- Talent 1: Sharp Bones -->
+                        <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900">
+                            <div class="max-w-[70%]">
+                                <p class="font-bold text-white text-sm">Ossos Afiados <span class="text-red-400 font-mono" id="lvl-talent-sharpBones">[0/10]</span></p>
+                                <p class="text-[10px] text-zinc-500 leading-tight">+3% de Dano total global por nível</p>
+                            </div>
+                            <button onclick="uparTalento('sharpBones')" id="btn-talent-sharpBones" class="bg-red-900 hover:bg-red-800 text-white font-bold w-8 h-8 rounded flex items-center justify-center text-lg active:scale-95">+</button>
+                        </div>
+                        <!-- Talent 2: Precision -->
+                        <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900">
+                            <div class="max-w-[70%]">
+                                <p class="font-bold text-white text-sm">Precisão Letal <span class="text-red-400 font-mono" id="lvl-talent-precision">[0/10]</span></p>
+                                <p class="text-[10px] text-zinc-500 leading-tight">+2% de Chance de Crítico global por nível</p>
+                            </div>
+                            <button onclick="uparTalento('precision')" id="btn-talent-precision" class="bg-red-900 hover:bg-red-800 text-white font-bold w-8 h-8 rounded flex items-center justify-center text-lg active:scale-95">+</button>
+                        </div>
+                        <!-- Talent 3: Grave Vigor -->
+                        <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900">
+                            <div class="max-w-[70%]">
+                                <p class="font-bold text-white text-sm">Vigor do Túmulo <span class="text-red-400 font-mono" id="lvl-talent-graveVigor">[0/10]</span></p>
+                                <p class="text-[10px] text-zinc-500 leading-tight">+15% de Multiplicador de Crítico por nível</p>
+                            </div>
+                            <button onclick="uparTalento('graveVigor')" id="btn-talent-graveVigor" class="bg-red-900 hover:bg-red-800 text-white font-bold w-8 h-8 rounded flex items-center justify-center text-lg active:scale-95">+</button>
+                        </div>
+                        <!-- Talent 4: Phantom Strike -->
+                        <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900">
+                            <div class="max-w-[70%]">
+                                <p class="font-bold text-white text-sm">Golpe Fantasma <span class="text-red-400 font-mono" id="lvl-talent-phantomStrike">[0/10]</span></p>
+                                <p class="text-[10px] text-zinc-500 leading-tight">+2% de Chance de Ataque Duplo por nível</p>
+                            </div>
+                            <button onclick="uparTalento('phantomStrike')" id="btn-talent-phantomStrike" class="bg-red-900 hover:bg-red-800 text-white font-bold w-8 h-8 rounded flex items-center justify-center text-lg active:scale-95">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LADO DIREITO: 💎 CAMINHO DA FORTUNA (Loot) -->
+                <div class="bg-black/60 p-3 rounded border border-teal-950">
+                    <h4 class="text-teal-400 font-bold text-sm border-b border-teal-900 pb-1 mb-3 flex items-center gap-1">
+                        💎 CAMINHO DA FORTUNA
+                    </h4>
+                    <div class="space-y-3">
+                        <!-- Talent 1: Luck -->
+                        <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900">
+                            <div class="max-w-[70%]">
+                                <p class="font-bold text-white text-sm">Sorte do Coveiro <span class="text-teal-400 font-mono" id="lvl-talent-luck">[0/10]</span></p>
+                                <p class="text-[10px] text-zinc-500 leading-tight">+5% de Ouro recebido globalmente por nível</p>
+                            </div>
+                            <button onclick="uparTalento('luck')" id="btn-talent-luck" class="bg-teal-900 hover:bg-teal-800 text-white font-bold w-8 h-8 rounded flex items-center justify-center text-lg active:scale-95">+</button>
+                        </div>
+                        <!-- Talent 2: Stardust -->
+                        <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900">
+                            <div class="max-w-[70%]">
+                                <p class="font-bold text-white text-sm">Poeira das Estrelas <span class="text-teal-400 font-mono" id="lvl-talent-stardust">[0/10]</span></p>
+                                <p class="text-[10px] text-zinc-500 leading-tight">+8% de Poeira Mística por reciclagem por nível</p>
+                            </div>
+                            <button onclick="uparTalento('stardust')" id="btn-talent-stardust" class="bg-teal-900 hover:bg-teal-800 text-white font-bold w-8 h-8 rounded flex items-center justify-center text-lg active:scale-95">+</button>
+                        </div>
+                        <!-- Talent 3: Relic Hunter -->
+                        <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900">
+                            <div class="max-w-[70%]">
+                                <p class="font-bold text-white text-sm">Caçador de Relíquias <span class="text-teal-400 font-mono" id="lvl-talent-relicHunter">[0/10]</span></p>
+                                <p class="text-[10px] text-zinc-500 leading-tight">Aumenta o nível de drop efetivo do baú em +0.5 por nível</p>
+                            </div>
+                            <button onclick="uparTalento('relicHunter')" id="btn-talent-relicHunter" class="bg-teal-900 hover:bg-teal-800 text-white font-bold w-8 h-8 rounded flex items-center justify-center text-lg active:scale-95">+</button>
+                        </div>
+                        <!-- Talent 4: Master Key -->
+                        <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900">
+                            <div class="max-w-[70%]">
+                                <p class="font-bold text-white text-sm">Chave Mestra <span class="text-teal-400 font-mono" id="lvl-talent-masterKey">[0/10]</span></p>
+                                <p class="text-[10px] text-zinc-500 leading-tight">+5% de chance de obter 2 Baús ao mesmo tempo por nível</p>
+                            </div>
+                            <button onclick="uparTalento('masterKey')" id="btn-talent-masterKey" class="bg-teal-900 hover:bg-teal-800 text-white font-bold w-8 h-8 rounded flex items-center justify-center text-lg active:scale-95">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT COM A LÓGICA DO COMBATE E DO BACKUP -->
+    <script>
+        // --- STREAMING_CHUNK: Inicializando Sistema de Áudio Retro ---
+        let audioLigado = true;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function toggleAudio() {
+            audioLigado = !audioLigado;
+            document.getElementById('btn-audio').textContent = audioLigado ? 'Sons: LIGADO' : 'Sons: DESLIGADO';
+            document.getElementById('btn-audio').className = audioLigado ? 
+                'px-2.5 py-0.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 rounded text-sm border border-emerald-800 transition-colors font-sans' :
+                'px-2.5 py-0.5 bg-red-950 hover:bg-red-900 text-red-300 rounded text-sm border border-red-800 transition-colors font-sans';
+        }
+
+        function playSound(freq, type, duration) {
+            if (!audioLigado) return;
+            try {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        function playHit() { playSound(180, 'triangle', 0.1); }
+        function playHitHero() { playSound(120, 'sawtooth', 0.15); }
+        function playCrit() { playSound(420, 'sawtooth', 0.15); playSound(520, 'sawtooth', 0.1); }
+        function playChest() { playSound(330, 'square', 0.1); setTimeout(() => playSound(440, 'square', 0.2), 100); }
+        function playGold() { playSound(987, 'sine', 0.05); setTimeout(() => playSound(1318, 'sine', 0.05), 50); }
+        function playLvlUp() { playSound(523, 'sine', 0.1); setTimeout(() => playSound(659, 'sine', 0.1), 100); setTimeout(() => playSound(784, 'sine', 0.1), 200); setTimeout(() => playSound(1046, 'sine', 0.3), 300); }
+        function playDeath() { playSound(220, 'sawtooth', 0.2); setTimeout(() => playSound(147, 'sawtooth', 0.4), 150); }
+
+        // --- PALETAS DE PIXEL ART E MATRIZES ---
+        const colorMaps = {
+            '.': 'transparent',
+            'A': '#475569', // Aço / Armadura
+            'D': '#1e293b', // Sombra / Ossos Escuros
+            'K': '#fca5a5', // Pele
+            'W': '#f8fafc', // Branco (Ossos)
+            'R': '#ef4444', // Vermelho
+            'G': '#22c55e', // Verde
+            'B': '#3b82f6', // Azul
+            'Y': '#eab308', // Amarelo Ouro
+            'O': '#f97316', // Laranja
+            'P': '#a855f7', // Roxo
+            'C': '#78350f', // Marrom
+            'S': '#94a3b8', // Cinza Prata
+        };
+
+        const SPRITES = {
+            hero_naked: [
+                ".....WWWWWW.....",
+                "...WWWWWWWWWW...",
+                "..WWDDWWWWDDWW..",
+                "..WWDDWWWWDDWW..",
+                "..WWWWWWWWWWWW..",
+                "...WWWWWWWWWW...",
+                "....WWDWWWDW....",
+                ".....WWWWWW.....",
+                "......WWWW......",
+                "....WWWWWWWW....",
+                "...WWWWWWWWWW...",
+                "...W..WWWW..W...",
+                "......WWWW......",
+                ".....WW..WW.....",
+                "....WW....WW....",
+                "....WW....WW...."
+            ],
+            slime: [
+                "................",
+                "................",
+                "................",
+                "......GGGG......",
+                "....GGGGWWGG....",
+                "...GGGGGGGGGG...",
+                "..GGWWGGGGWWGG..",
+                "..GGWWGGGGWWGG..",
+                ".GGGGGGGGGGGGGG.",
+                ".GGGGGGGGGGGGGG.",
+                "GGGGGGGGGGGGGGGG",
+                "GGGGGGGGGGGGGGGG",
+                "GGGGGGGGGGGGGGGG",
+                ".GGGGGGGGGGGGGG.",
+                "..GGGGGGGGGGGG..",
+                "................"
+            ],
+            skeleton: [
+                ".....WWWWWW.....",
+                "...WWWWWWWWWW...",
+                "..WWDDWWWWDDWW..",
+                "..WWDDWWWWDDWW..",
+                "..WWWWWWWWWWWW..",
+                "...WWWWWWWWWW...",
+                "....WWDWWWDW....",
+                ".....WWWWWW.....",
+                "......WWWW......",
+                "....WWWWWWWW....",
+                "...WWWWWWWWWW...",
+                "...W..WWWW..W...",
+                "......WWWW......",
+                ".....WW..WW.....",
+                "....WW....WW....",
+                "....WW....WW...."
+            ],
+            goblin: [
+                "................",
+                "G..GGGGGGGGGG..G",
+                "GGGGGGGGGGGGGGGG",
+                ".GGGGGGGGGGGGGG.",
+                "..GGDDGGGGDDGG..",
+                "..GGDDGGGGDDGG..",
+                "..GGGGGGGGGGGG..",
+                "...GGGGGGGGGG...",
+                "....GGYGGYGG....",
+                ".....GGGGGG.....",
+                "......CCCC......",
+                ".....CCCCCC.....",
+                "....CCCCCCCC....",
+                "....C..CC..C....",
+                ".......CC.......",
+                "......C..C......"
+            ],
+            demon: [
+                "R..RR......RR..R",
+                "RR.RRR....RRR.RR",
+                "RRRRRRRRRRRRRRRR",
+                ".RRRRRRRRRRRRRR.",
+                "..RRYYRRRRYYRR..",
+                "..RRYYRRRRYYRR..",
+                "..RRRRRRRRRRRR..",
+                "...RRRRRRRRRR...",
+                "....RROOOORR....",
+                ".....RRRRRR.....",
+                "......DDDD......",
+                ".....DDDDDD.....",
+                "....DDDDDDDD....",
+                "....D..DD..D....",
+                ".......DD.......",
+                "......D..D......"
+            ],
+            dragon: [
+                "OO............OO",
+                "OOO..........OOO",
+                ".OOOO......OOOO.",
+                "..OOOOOOOOOOOO..",
+                "..OORROOOORROO..",
+                "..OORROOOORROO..",
+                ".OOOOOOOOOOOOOO.",
+                "OOOOOYYYYYYYYOOO",
+                "OOOOYYYYYYYYYOOO",
+                "OOOOOOYYYYYOOOOO",
+                "..OOOOOOOOOOOO..",
+                "...OOOOOOOOOO...",
+                "....OOOOOOOO....",
+                ".....OOOOOO.....",
+                "......OOOO......",
+                ".......OO......."
+            ],
+            
+            // PIXEL ART DOS COMPANHEIROS / PETS (16x16)
+            pet_bat: [
+                "................",
+                "....P......P....",
+                "...PPP....PPP...",
+                "..PPPPPPPPPPPP..",
+                "..PPRRPPPPRRPD..",
+                "...DDDDDDDDDD...",
+                "....DDDDDDDD....",
+                ".....DDDDDD.....",
+                "......DDDD......",
+                ".......DD.......",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................"
+            ],
+            pet_ghost: [
+                "......BBBB......",
+                "....BBBBBBBB....",
+                "...BBBBBBBBBB...",
+                "..BBWWBBBBWWBB..",
+                "..BBWWBBBBWWBB..",
+                "..BBBBBBBBBBBB..",
+                "...BBBBBBBBBB...",
+                "...BBBBBBBBBB...",
+                "...B.B.B.B.B....",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................"
+            ],
+            pet_slime: [
+                "................",
+                "................",
+                "......YYYY......",
+                "....YYYYYYYY....",
+                "...YYWWYYYYWWY..",
+                "...YYWWYYYYWWY..",
+                "...YYYYYYYYYYY..",
+                "....YYYYYYYYY...",
+                ".....YYYYYYY....",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................"
+            ]
+        };
+
+        const ITEM_SPRITES = {
+            arma_sword: [
+                "............YY..",
+                "...........YY...",
+                "..........SS....",
+                ".........SS.....",
+                "........SS......",
+                ".......SS.......",
+                "......SS........",
+                ".....SS.........",
+                "....SS..........",
+                "...SS...........",
+                "..AA............",
+                ".AA.............",
+                "C...............",
+                "................",
+                "................",
+                "................"
+            ],
+            arma_bow: [
+                "......CCCC......",
+                "....CC..W.CC....",
+                "...CC...W...CC..",
+                "..CC....W.....CC",
+                ".C......W......C",
+                ".C......W......C",
+                ".C......W......C",
+                "..CC....W.....CC",
+                "...CC...W....CC.",
+                "....CC..W...CC..",
+                ".....CC.W..CC...",
+                "......CCCCCCC...",
+                "........W.......",
+                "........W.......",
+                "........W.......",
+                "........W......."
+            ],
+            elmo: [
+                "......AAAA......",
+                "....AAAAAAAA....",
+                "...AAASSSSAAAA..",
+                "..AASSSSSSSSAAA.",
+                ".AASSSSSSSSSSAAA",
+                "AASSSSRRRRSSSSAA",
+                "AASSSSRRRRSSSSAA",
+                "AASSSSSSSSSSSSAA",
+                "AASSAAAAAAAASSAA",
+                "AASAA......AASAA",
+                "AAA..........AAA",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................"
+            ],
+            colar: [
+                "....YYYYYYYY....",
+                "...Y........Y...",
+                "..Y..........Y..",
+                ".Y............Y.",
+                "Y..............Y",
+                "Y..............Y",
+                ".Y............Y.",
+                "..Y..........Y..",
+                "...Y........Y...",
+                "....Y..RR..Y....",
+                ".....YRRRRY.....",
+                "......YRYY......",
+                ".......YY.......",
+                "................",
+                "................",
+                "................"
+            ],
+            peitoral: [
+                "....AA....AA....",
+                "...AAAA..AAAA...",
+                "..AAAAAAAAAAAA..",
+                ".AAAAAAAAAAAAAA.",
+                "AAAAAAAAAAAAAAAA",
+                "AASSSSSSSSSSSSAA",
+                "AASSSSRRRRSSSSAA",
+                "AASSSSSSSSSSSSAA",
+                ".ASSSSSSSSSSSSA.",
+                "..ASSSSSSSSSSA..",
+                "...ASSSSSSSSA...",
+                "....AAAAAAAA....",
+                ".....AAAAAA.....",
+                "................",
+                "................",
+                "................"
+            ],
+            calca: [
+                "....YYYYYYYY....",
+                "....AAAAAAAA....",
+                "...AASSSSSSAA...",
+                "...AASSSSSSAA...",
+                "..AASSSSSSSSAA..",
+                "..AASSS..SSSAA..",
+                "..AASSS..SSSAA..",
+                ".AASSS....SSSAA.",
+                ".AASSS....SSSAA.",
+                ".AASSS....SSSAA.",
+                "AASSS......SSSAA",
+                "AASSS......SSSAA",
+                "................",
+                "................",
+                "................",
+                "................"
+            ],
+            bota: [
+                "................",
+                "................",
+                "....AA.....AA...",
+                "...AAA....AAA...",
+                "..AASS...AASS...",
+                "..AASS...AASS...",
+                "..AASS...AASS...",
+                ".AASSS...AASSS..",
+                "AASSSS..AASSSS..",
+                "AASSSS..AASSSS..",
+                "AA.AA....AA.AA..",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................"
+            ],
+            anel: [
+                "......YYYY......",
+                "....YYRRRRYY....",
+                "...YRRRRRRRRY...",
+                "..YRRRRRRRRRRY..",
+                "..YRRRRRRRRRRY..",
+                "...YRRRRRRRRY...",
+                "....YYRRRRYY....",
+                "......YYYY......",
+                ".....Y....Y.....",
+                "....Y......Y....",
+                "....Y......Y....",
+                "....Y......Y....",
+                ".....Y....Y.....",
+                "......YYYY......",
+                "................",
+                "................"
+            ]
+        };
+
+        // --- STREAMING_CHUNK: Definindo Tabelas e Constantes de Raridade ---
+        function buildPixelArtSVG(matrix) {
+            let rects = '';
+            for (let y = 0; y < 16; y++) {
+                for (let x = 0; x < 16; x++) {
+                    const char = matrix[y][x];
+                    if (char !== '.') {
+                        const color = colorMaps[char] || '#ffffff';
+                        rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${color}" />`;
+                    }
+                }
+            }
+            return `<svg viewBox="0 0 16 16" class="w-full h-full" style="image-rendering: pixelated; shape-rendering: crispEdges;">${rects}</svg>`;
+        }
+
+        function buildItemPixelArtSVG(spriteKey, raridadeCor) {
+            const matrix = ITEM_SPRITES[spriteKey];
+            if (!matrix) return '';
+            let rects = '';
+            for (let y = 0; y < 16; y++) {
+                for (let x = 0; x < 16; x++) {
+                    const char = matrix[y][x];
+                    if (char !== '.') {
+                        let color = colorMaps[char] || '#ffffff';
+                        if (char === 'R' || char === 'Y' || char === 'P') {
+                            color = raridadeCor;
+                        }
+                        rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${color}" />`;
+                    }
+                }
+            }
+            return `<svg viewBox="0 0 16 16" class="w-full h-full filter drop-shadow-[0_0_2px_${raridadeCor}]" style="image-rendering: pixelated; shape-rendering: crispEdges;">${rects}</svg>`;
+        }
+
+        const raridades = {
+            comum: { nome: 'Comum', cor: '#94a3b8', multiplicador: 1.0 },
+            incomum: { nome: 'Incomum', cor: '#4ade80', multiplicador: 1.5 },
+            incoomum: { nome: 'Incomum', cor: '#4ade80', multiplicador: 1.5 }, // Tolerância de migração
+            raro: { nome: 'Raro', cor: '#60a5fa', multiplicador: 2.2 },
+            epico: { nome: 'Épico', cor: '#c084fc', multiplicador: 3.2 },
+            mistico: { nome: 'Místico', cor: '#f472b6', multiplicador: 4.5 },
+            lendario: { nome: 'Lendário', cor: '#facc15', multiplicador: 6.0 },
+            ancestral: { nome: 'Ancestral', cor: '#2dd4bf', multiplicador: 8.0 },
+            reliquia: { nome: 'Relíquia', cor: '#f87171', multiplicador: 11.0 },
+            divino: { nome: 'Divino', cor: '#38bdf8', multiplicador: 15.0 },
+            eterno: { nome: 'Eterno', cor: '#e879f9', multiplicador: 20.0 }
+        };
+
+        // --- STATE GLOBAL ---
+        let state = {
+            ouro: 0,
+            poeira: 0,
+            fragmentosAlma: 0, // Moeda permanente de Reencarnação
+            nivelHeroi: 1,
+            xp: 0,
+            xpMax: 100,
+            estagio: 1,
+            totalBaus: 3, 
+            heroiHp: 100,
+            maxEstagioAlcancado: 1, // Monitora se o Altar está liberado (>100)
+            upgrades: {
+                bau: 1
+            },
+            equipado: {
+                arma: null,
+                elmo: null,
+                colar: null,
+                peitoral: null,
+                calca: null,
+                bota: null,
+                anel: null
+            },
+            pets: {
+                ativo: 'nenhum',
+                bat: 0,   // Nível do Morceguinho
+                ghost: 0, // Nível do Fantasma
+                slime: 0  // Nível do Slime Ouro
+            },
+            soulUpgrades: {
+                forca: 0,      // +1.5% Dano por nível (Máx 10)
+                vitalidade: 0, // +2% HP por nível (Máx 10)
+                fortuna: 0     // +1.5% Chance Drop Baú por nível (Máx 10)
+            },
+            filtro: {
+                raridade: 'nenhum',
+                preservar: {
+                    crit: false,
+                    evasao: false,
+                    atqDuplo: false,
+                    danoCrit: false,
+                    vida: false,
+                    dano: false
+                }
+            },
+            // Árvore de talentos
+            pontosTalentoAtribuidos: {
+                sharpBones: 0,
+                precision: 0,
+                graveVigor: 0,
+                phantomStrike: 0,
+                luck: 0,
+                stardust: 0,
+                relicHunter: 0,
+                masterKey: 0
+            }
+        };
+
+        let lootDropado = null; 
+        let lootOrigemSlot = null; // Rastreia se o item veio de um slot equipado ativo
+        let abaAtiva = 'loja';
+
+        const monstrosLista = [
+            { nome: 'Slime Verde', sprite: 'slime' },
+            { nome: 'Guerreiro Esqueleto', sprite: 'skeleton' },
+            { nome: 'Goblin Trapaceiro', sprite: 'goblin' },
+            { nome: 'Monstro de Cinzas', sprite: 'demon' },
+            { nome: 'Dragão Vermelho', sprite: 'dragon' }
+        ];
+
+        let monstroAtual = {
+            nome: 'Slime Verde',
+            sprite: 'slime',
+            hp: 25,
+            hpMax: 25,
+            nivel: 1
+        };
+
+        let tempoAtaqueAcumulado = 0;
+        let tempoAtaqueMonstroAcumulado = 0;
+
+        const adjetivosArmas = ['de Treino', 'Gasto', 'Reforçado', 'do Caçador', 'Místico', 'Rúnico', 'Ancestral', 'Divino', 'Eterno', 'Cósmico'];
+        const elmosNomes = ['Capuz de Tecido', 'Elmo de Couro', 'Elmo de Ferro', 'Elmo de Aço', 'Capacete Rúnico', 'Máscara Espectral', 'Coroa Imperial'];
+        const colarNomes = ['Colar de Ossos', 'Amuleto Espectral', 'Gargantilha de Safira', 'Medalhão Celestial', 'Pacto Cósmico', 'Elo Eterno'];
+        const peitoraisNomes = ['Túnica de Linho', 'Gibão de Couro', 'Placas de Aço', 'Armadura Rúnica', 'Manto Imortal', 'Couraça de Éter'];
+        const calcasNomes = ['Calças de Tecido', 'Peleias de Couro', 'Grevas Rúnicas', 'Perna-Placas Divinas', 'Calças Ancestrais', 'Perneiras Eternas'];
+        const botasNomes = ['Botas de Pano', 'Botas de Couro', 'Botas Cruéis', 'Sapatos Alados', 'Pegadas de Luz', 'Solas Eternas'];
+        const aneisNomes = ['Anel de Bronze', 'Anel de Prata', 'Anel de Ouro', 'Anel Esmeralda', 'Anel Cósmico', 'Anel da Eternidade'];
+
+        // --- STREAMING_CHUNK: Calculando Chances de Drop e Geração de Sub-stats ---
+        function calcularChancesDrop(u) {
+            // Caçador de relíquias aumenta virtualmente o nível do baú
+            const bonusTalento = (state.pontosTalentoAtribuidos.relicHunter || 0) * 0.5;
+            const uEfetivo = u + bonusTalento;
+
+            const pesos = {
+                comum: 1000 / (1 + (uEfetivo - 1) * 0.35),
+                incomum: 400 * Math.pow(uEfetivo, 0.2),
+                raro: 180 * Math.pow(uEfetivo, 0.4),
+                epico: 80 * Math.pow(uEfetivo, 0.6),
+                mistico: 35 * Math.pow(uEfetivo, 0.8),
+                lendario: 15 * Math.pow(uEfetivo, 1.0),
+                ancestral: 6 * Math.pow(uEfetivo, 1.2),
+                reliquia: 2.2 * Math.pow(uEfetivo, 1.4),
+                divino: 0.8 * Math.pow(uEfetivo, 1.6),
+                eterno: 0.2 * Math.pow(uEfetivo, 1.8)
+            };
+
+            const total = Object.values(pesos).reduce((a, b) => a + b, 0);
+            const chances = {};
+            for (const [key, peso] of Object.entries(pesos)) {
+                chances[key] = (peso / total) * 100;
+            }
+            return chances;
+        }
+
+
+        function gerarSubStats(raridade, lvlEstagio) {
+            const numSubs = {
+                comum: 0, incomum: 1, raro: 1, epico: 2, mistico: 2,
+                lendario: 3, ancestral: 3, reliquia: 4, divino: 4, eterno: 5
+            }[raridade] || 0;
+
+            const pool = ['crit', 'evasao', 'atqDuplo', 'danoCrit', 'vida', 'dano'];
+            const subStats = {};
+
+            const shuffled = [...pool].sort(() => 0.5 - Math.random());
+            const escolhidos = shuffled.slice(0, numSubs);
+
+            escolhidos.forEach(stat => {
+
+                const tetoMax = {
+                    comum: 1.5, incomum: 3.0, raro: 4.5, epico: 6.0, mistico: 7.5,
+                    lendario: 9.0, ancestral: 10.5, reliquia: 12.0, divino: 13.5, eterno: 15.0
+                }[raridade] || 1.5;
+
+
+                const fatorEstagio = Math.min(1.0, 0.2 + (lvlEstagio / 50) * 0.8);
+                const valorCalculado = tetoMax * fatorEstagio * (0.8 + Math.random() * 0.4);
+
+                if (stat === 'crit' || stat === 'evasao' || stat === 'atqDuplo' || stat === 'danoCrit') {
+                    subStats[stat] = Math.max(1, Math.min(Math.ceil(valorCalculado), Math.ceil(tetoMax)));
+                } else if (stat === 'vida') {
+                    const baseVida = (10 + lvlEstagio * 2.5) * tetoMax * 0.5;
+                    subStats[stat] = Math.max(5, Math.ceil(baseVida * (0.8 + Math.random() * 0.4)));
+                } else if (stat === 'dano') {
+                    const baseDano = (1 + lvlEstagio * 0.4) * tetoMax * 0.4;
+                    subStats[stat] = Math.max(1, Math.ceil(baseDano * (0.8 + Math.random() * 0.4)));
+                }
+            });
+
+            return subStats;
+        }
+
+
+        function gerarLootAleatorio() {
+            const chances = calcularChancesDrop(state.upgrades.bau);
+            const r = Math.random() * 100;
+            let acumulado = 0;
+            let raridade = 'comum';
+
+            for (const [key, pct] of Object.entries(chances)) {
+                acumulado += pct;
+                if (r <= acumulado) {
+                    raridade = key;
+                    break;
+                }
+            }
+
+            const multRaridade = raridades[raridade].multiplicador;
+            
+
+            const variacao = Math.floor(Math.random() * 11) - 5;
+            const lvlItem = Math.max(1, state.estagio + variacao);
+
+            const tipos = ['arma', 'elmo', 'colar', 'peitoral', 'calca', 'bota', 'anel'];
+            const tipo = tipos[Math.floor(Math.random() * tipos.length)];
+
+            let nome = '';
+            let atributos = {};
+
+            if (tipo === 'arma') {
+                const subTipo = Math.random() > 0.5 ? 'Espada' : 'Arco';
+                const adj = adjetivosArmas[Math.min(Math.floor(Math.random() * adjetivosArmas.length), Math.floor(lvlItem / 5))];
+                nome = `${subTipo} ${adj}`;
+                
+                if (subTipo === 'Espada') {
+                    atributos.dano = Math.ceil((12 + lvlItem * 1.5) * multRaridade);
+                    atributos.vida = Math.ceil((25 + lvlItem * 4) * multRaridade); // Espada concede HP
+                    atributos.velocidade = 1.4;
+                    atributos.crit = 0;
+                } else {
+                    atributos.dano = Math.ceil((8 + lvlItem * 1.0) * multRaridade);
+                    atributos.velocidade = parseFloat(Math.max(0.7, 1.2 - (multRaridade * 0.03)).toFixed(2));
+                    atributos.crit = Math.min(15 + Math.floor(multRaridade * 2.0), 50); // Arco concede Crítico
+                }
+                atributos.subTipo = subTipo;
+            } else if (tipo === 'elmo') {
+                const baseNome = elmosNomes[Math.min(Math.floor(Math.random() * elmosNomes.length), Math.floor(lvlItem / 10))];
+                nome = `${baseNome}`;
+                atributos.vida = Math.ceil((15 + lvlItem * 3) * multRaridade);
+            } else if (tipo === 'colar') {
+                const baseNome = colarNomes[Math.min(Math.floor(Math.random() * colarNomes.length), Math.floor(lvlItem / 10))];
+                nome = `${baseNome}`;
+                atributos.vida = Math.ceil((10 + lvlItem * 2.5) * multRaridade);
+                atributos.dano = Math.ceil((2 + lvlItem * 0.4) * multRaridade);
+            } else if (tipo === 'peitoral') {
+                const baseNome = peitoraisNomes[Math.min(Math.floor(Math.random() * peitoraisNomes.length), Math.floor(lvlItem / 10))];
+                nome = `${baseNome}`;
+                atributos.vida = Math.ceil((30 + lvlItem * 6) * multRaridade);
+            } else if (tipo === 'calca') {
+                const baseNome = calcasNomes[Math.min(Math.floor(Math.random() * calcasNomes.length), Math.floor(lvlItem / 10))];
+                nome = `${baseNome}`;
+                atributos.vida = Math.ceil((20 + lvlItem * 4) * multRaridade);
+            } else if (tipo === 'bota') {
+                const baseNome = botasNomes[Math.min(Math.floor(Math.random() * botasNomes.length), Math.floor(lvlItem / 10))];
+                nome = `${baseNome}`;
+                atributos.vida = Math.ceil((12 + lvlItem * 2.5) * multRaridade);
+            } else if (tipo === 'anel') {
+                const baseNome = aneisNomes[Math.min(Math.floor(Math.random() * aneisNomes.length), Math.floor(lvlItem / 10))];
+                nome = `${baseNome}`;
+                atributos.dano = Math.ceil((4 + lvlItem * 0.6) * multRaridade);
+                atributos.vida = Math.ceil((8 + lvlItem * 1.5) * multRaridade);
+            }
+
+            const subStats = gerarSubStats(raridade, lvlItem);
+
+            return { id: Date.now(), tipo, nome, raridade, atributos, subStats, levelItem: lvlItem };
+        }
+
+
+        function calcularAtributosHeroi() {
+            let dano = 10;
+            let velocidade = 1.5;
+            let crit = 5;
+            let danoCrit = 200; // Base: 200% de dano crítico
+            let vidaMax = 100 + (state.nivelHeroi - 1) * 15;
+            let evasao = 0;
+            let atqDuplo = 0;
+
+            const slotsEquipados = ['arma', 'elmo', 'colar', 'peitoral', 'calca', 'bota', 'anel'];
+
+            slotsEquipados.forEach(slot => {
+                const item = state.equipado[slot];
+                if (!item) return;
+                
+                if (item.tipo === 'arma') {
+                    dano += item.atributos.dano || 0;
+                    velocidade = item.atributos.velocidade || 1.5;
+                    crit += item.atributos.crit || 0;
+                    vidaMax += item.atributos.vida || 0;
+                } else {
+                    if (item.atributos.dano) dano += item.atributos.dano;
+                    if (item.atributos.vida) vidaMax += item.atributos.vida;
+                }
+
+                if (item.subStats) {
+                    for (const [key, val] of Object.entries(item.subStats)) {
+                        if (key === 'crit') crit += val;
+                        if (key === 'evasao') evasao += val;
+                        if (key === 'atqDuplo') atqDuplo += val;
+                        if (key === 'danoCrit') danoCrit += val;
+                        if (key === 'vida') vidaMax += val;
+                        if (key === 'dano') dano += val;
+                    }
+                }
+            });
+
+
+            if (state.pets.ativo === 'ghost' && state.pets.ghost > 0) {
+                evasao += state.pets.ghost * 1.5; // +1.5% evasão por nível
+            }
+
+
+            if (state.soulUpgrades.forca > 0) {
+                dano = Math.ceil(dano * (1 + state.soulUpgrades.forca * 0.015)); // +1.5% dano global por nível
+            }
+            if (state.soulUpgrades.vitalidade > 0) {
+                vidaMax = Math.ceil(vidaMax * (1 + state.soulUpgrades.vitalidade * 0.02)); // +2% HP global por nível
+            }
+            dano = Math.ceil(dano * (1 + (state.pontosTalentoAtribuidos.sharpBones || 0) * 0.03));
+            crit += (state.pontosTalentoAtribuidos.precision || 0) * 2;
+            danoCrit += (state.pontosTalentoAtribuidos.graveVigor || 0) * 15;
+            atqDuplo += (state.pontosTalentoAtribuidos.phantomStrike || 0) * 2;
+
+            evasao = Math.min(evasao, 50);
+            atqDuplo = Math.min(atqDuplo, 100);
+
+            return { dano, velocidade, crit, danoCrit, vidaMax, evasao, atqDuplo };
+        }
+
+        function verificarFiltroAutoVenda(item) {
+            const limiteRaridade = state.filtro.raridade || 'nenhum';
+            if (limiteRaridade === 'nenhum') return false;
+
+            const escalaRaridades = ['comum', 'incomum', 'raro', 'epico', 'mistico', 'lendario', 'ancestral', 'reliquia', 'divino', 'eterno'];
+            const indexItem = escalaRaridades.indexOf(item.raridade);
+            const indexFiltro = escalaRaridades.indexOf(limiteRaridade);
+
+            if (indexItem <= indexFiltro) {
+                if (item.subStats) {
+                    for (const [key, val] of Object.entries(item.subStats)) {
+                        if (state.filtro.preservar[key] === true) {
+                            return false; 
+                        }
+                    }
+                }
+                return true; 
+            }
+            return false;
+        }
+
+        function realizarAutoVendaInstante(item) {
+            const valoresVenda = {
+                comum: { o: 10, p: 1 },
+                incomum: { o: 25, p: 3 },
+                incoomum: { o: 25, p: 3 },
+                raro: { o: 60, p: 8 },
+                epico: { o: 150, p: 20 },
+                mistico: { o: 300, p: 40 },
+                lendario: { o: 600, p: 80 },
+                ancestral: { o: 1200, p: 160 },
+                reliquia: { o: 2500, p: 350 },
+                divino: { o: 5000, p: 750 },
+                eterno: { o: 12000, p: 2000 }
+            };
+
+            const recompensa = valoresVenda[item.raridade];
+            let ouroGanho = recompensa.o;
+            let goldMult = 1;
+            if (state.pets.ativo === 'slime' && state.pets.slime > 0) {
+                goldMult += state.pets.slime * 0.08;
+            }
+            goldMult += (state.pontosTalentoAtribuidos.luck || 0) * 0.05;
+            ouroGanho = Math.ceil(ouroGanho * goldMult);
+
+            // Bônus de Poeira do Talento
+            let poeiraGanho = recompensa.p;
+            poeiraGanho = Math.ceil(poeiraGanho * (1 + (state.pontosTalentoAtribuidos.stardust || 0) * 0.08));
+
+            state.ouro += ouroGanho;
+            state.poeira += poeiraGanho;
+            
+            mostrarLog(`⚡ Auto-Reciclado: ${item.nome} por +${ouroGanho} Ouro e +${poeiraGanho} Poeira!`);
+            playGold();
+        }
+
+        // --- STREAMING_CHUNK: Sistema de Escala de HP do Monstro Corrigida ---
+        function gerarInimigo() {
+            const nivel = state.estagio;
+            const esBoss = nivel % 10 === 0;
+            
+            let template;
+            if (esBoss) {
+                template = levelBossTemplate(nivel);
+            } else {
+                template = monstrosLista[Math.floor(Math.random() * (monstrosLista.length - 1))];
+            }
+            
+            monstroAtual.sprite = template.sprite;
+            monstroAtual.nome = esBoss ? `CHEFE ${template.nome.toUpperCase()}` : template.nome;
+            
+            // ESCALA REAJUSTADA PARA EXATAMENTE 125.000 HP NO BOSS DO ESTÁGIO 60 (Reduzido pela metade para acelerar as lutas)
+            // Nível 60 Base: ~50.000 HP. Multiplicado por 2.5 (Boss) = 125.000 HP!
+            let vidaEscalada = Math.ceil(14.608 * Math.pow(1.145, nivel) + nivel * 10);
+            if (esBoss) vidaEscalada = Math.ceil(vidaEscalada * 2.5);
+
+            monstroAtual.hpMax = vidaEscalada;
+            monstroAtual.hp = vidaEscalada;
+            monstroAtual.nivel = nivel;
+
+            document.getElementById('txt-monstro-nome').textContent = `${monstroAtual.nome} (Nv. ${monstroAtual.nivel})`;
+            document.getElementById('visual-monstro').innerHTML = buildPixelArtSVG(SPRITES[monstroAtual.sprite]);
+
+            if (esBoss) {
+                document.getElementById('combate-boss-banner').textContent = '⚠️ ESTÁGIO DE CHEFÃO!';
+                document.getElementById('visual-monstro').classList.add('scale-125');
+            } else {
+                document.getElementById('combate-boss-banner').textContent = '';
+                document.getElementById('visual-monstro').classList.remove('scale-125');
+            }
+            atualizarHpBarInimigo();
+        }
+
+        function levelBossTemplate(nivel) {
+            if (nivel % 20 === 0) {
+                return { nome: 'Dragão Celestial', sprite: 'dragon' };
+            }
+            return { nome: 'Demônio Infernal', sprite: 'demon' };
+        }
+
+        // --- SISTEMA DE POPUPS ---
+        function spawnDamagePopup(valor, crit) {
+            const container = document.getElementById('popups-container');
+            const popup = document.createElement('div');
+            popup.className = 'dmg-popup font-bold';
+            
+            if (crit) {
+                popup.innerHTML = `🔥 ${valor}!`;
+                popup.style.color = '#facc15';
+                popup.style.fontSize = '38px';
+            } else {
+                popup.innerHTML = valor;
+                popup.style.color = '#ef4444';
+            }
+            
+            popup.style.left = `${55 + (Math.random() * 20)}%`;
+            popup.style.top = `${30 + (Math.random() * 20)}%`;
+            
+            container.appendChild(popup);
+            setTimeout(() => popup.remove(), 800);
+        }
+
+        function spawnDamagePopupHeroi(valor) {
+            const container = document.getElementById('popups-container');
+            const popup = document.createElement('div');
+            popup.className = 'dmg-popup font-bold';
+            popup.innerHTML = `💥 -${valor}`;
+            popup.style.color = '#f87171';
+            
+            popup.style.left = `${15 + (Math.random() * 20)}%`;
+            popup.style.top = `${30 + (Math.random() * 20)}%`;
+            
+            container.appendChild(popup);
+            setTimeout(() => popup.remove(), 800);
+        }
+
+        function spawnHealPopup(valor) {
+            const container = document.getElementById('popups-container');
+            const popup = document.createElement('div');
+            popup.className = 'dmg-popup font-bold';
+            popup.innerHTML = `💚 +${valor}`;
+            popup.style.color = '#10b981';
+            
+            popup.style.left = `${15 + (Math.random() * 20)}%`;
+            popup.style.top = `${25 + (Math.random() * 20)}%`;
+            
+            container.appendChild(popup);
+            setTimeout(() => popup.remove(), 800);
+        }
+
+        function spawnDodgePopup() {
+            const container = document.getElementById('popups-container');
+            const popup = document.createElement('div');
+            popup.className = 'dmg-popup font-bold';
+            popup.innerHTML = `💨 ESQUIVOU!`;
+            popup.style.color = '#38bdf8';
+            
+            popup.style.left = `${15 + (Math.random() * 20)}%`;
+            popup.style.top = `${30 + (Math.random() * 20)}%`;
+            
+            container.appendChild(popup);
+            setTimeout(() => popup.remove(), 800);
+        }
+
+        function renderVfxAtaque(isBow) {
+            const container = document.getElementById('popups-container');
+            const vfx = document.createElement('div');
+            vfx.className = 'absolute text-4xl font-bold transition-all duration-300 pointer-events-none z-30';
+            vfx.style.top = '40%';
+            
+            if (isBow) {
+                vfx.textContent = '🏹';
+                vfx.style.left = '30%';
+                container.appendChild(vfx);
+                setTimeout(() => {
+                    vfx.style.left = '65%';
+                    vfx.style.transform = 'scale(1.2) rotate(15deg)';
+                }, 10);
+                setTimeout(() => vfx.remove(), 250);
+            } else {
+                vfx.textContent = '⚔️';
+                vfx.style.left = '65%';
+                vfx.style.transform = 'scale(0.5) rotate(-45deg)';
+                vfx.style.opacity = '1';
+                container.appendChild(vfx);
+                setTimeout(() => {
+                    vfx.style.transform = 'scale(1.8) rotate(45deg)';
+                    vfx.style.opacity = '0';
+                }, 50);
+                setTimeout(() => vfx.remove(), 250);
+            }
+        }
+
+        // --- STREAMING_CHUNK: Processando Combate e Dano do Inimigo ---
+        function realizarDanoAoMonstro(stats, isDoubleStrike) {
+            let danoFinal = stats.dano;
+            let critico = false;
+
+            if (Math.random() * 100 < stats.crit) {
+                const multiplicadorEfetivo = stats.danoCrit / 100;
+                danoFinal = Math.ceil(danoFinal * multiplicadorEfetivo);
+                critico = true;
+                playCrit();
+            } else {
+                playHit();
+            }
+
+            monstroAtual.hp = Math.max(0, monstroAtual.hp - danoFinal);
+            
+            const monstroEl = document.getElementById('visual-monstro');
+            monstroEl.classList.add('animate-hit');
+            spawnDamagePopup(danoFinal, critico);
+            if (!isDoubleStrike && state.pets.ativo === 'bat' && state.pets.bat > 0) {
+                const pctCuraDano = state.pets.bat * 0.01; // Cortado pela metade (era 0.02)
+                const pctCuraHPMax = state.pets.bat * 0.005; // Cortado pela metade (era 0.01)
+                const valorCura = Math.ceil(danoFinal * pctCuraDano) + Math.ceil(stats.vidaMax * pctCuraHPMax);
+                
+                if (valorCura > 0) {
+                    state.heroiHp = Math.min(stats.vidaMax, state.heroiHp + valorCura);
+                    spawnHealPopup(valorCura);
+                    atualizarHpBarHeroi();
+                }
+            }
+
+            atualizarHpBarInimigo();
+            
+            if (monstroAtual.hp <= 0) {
+                derrotarMonstro();
+            }
+
+            setTimeout(() => monstroEl.classList.remove('animate-hit'), 350);
+        }
+
+        function baterNoMonstro() {
+            const stats = calcularAtributosHeroi();
+            
+            const heroiEl = document.getElementById('visual-heroi');
+            const isBow = state.equipado.arma && state.equipado.arma.atributos.subTipo === 'Arco';
+            const animClasse = isBow ? 'animate-bow' : 'animate-sword';
+
+            heroiEl.classList.add(animClasse);
+            setTimeout(() => heroiEl.classList.remove(animClasse), 250);
+
+            renderVfxAtaque(isBow);
+            realizarDanoAoMonstro(stats, false); 
+
+            if (Math.random() * 100 < stats.atqDuplo && monstroAtual.hp > 0) {
+                setTimeout(() => {
+                    if (monstroAtual.hp > 0) {
+                        mostrarLog("💥 ATAQUE DUPLO!");
+                        renderVfxAtaque(isBow);
+                        realizarDanoAoMonstro(stats, true);
+                    }
+                }, 120);
+            }
+        }
+
+        function monstroAtacar() {
+            const stats = calcularAtributosHeroi();
+            
+            if (Math.random() * 100 < stats.evasao) {
+                spawnDodgePopup();
+                mostrarLog("💨 O Esqueleto esquivou-se agilmente!");
+                return;
+            }
+
+            const nivel = state.estagio;
+            let danoMonstro = Math.ceil(5 * Math.pow(1.085, nivel) + nivel * 1.2);
+            if (nivel % 10 === 0) danoMonstro = Math.ceil(danoMonstro * 3.0);
+
+            state.heroiHp = Math.max(0, state.heroiHp - danoMonstro);
+            
+            const heroiEl = document.getElementById('visual-heroi');
+            playHitHero();
+            
+            heroiEl.classList.add('animate-hit');
+            spawnDamagePopupHeroi(danoMonstro);
+            atualizarHpBarHeroi();
+
+            if (state.heroiHp <= 0) {
+                derrotarHeroi();
+            }
+
+            setTimeout(() => heroiEl.classList.remove('animate-hit'), 350);
+        }
+
+        function derrotarMonstro() {
+            let ouroGanho = Math.ceil(3 * Math.pow(1.09, state.estagio) + state.estagio * 0.5);
+            if (state.estagio % 10 === 0) ouroGanho *= 3;
+            
+            let goldMult = 1;
+            if (state.pets.ativo === 'slime' && state.pets.slime > 0) {
+                goldMult += state.pets.slime * 0.08;
+            }
+            goldMult += (state.pontosTalentoAtribuidos.luck || 0) * 0.05;
+            ouroGanho = Math.ceil(ouroGanho * goldMult);
+            
+            state.ouro += ouroGanho;
+            playGold();
+
+            let xpGanho = Math.ceil(state.estagio * 1.5 + 5);
+            receberXp(xpGanho);
+
+            const chanceChaveMestra = (state.pontosTalentoAtribuidos.masterKey || 0) * 5;
+            if (Math.random() * 100 < chanceChaveMestra) {
+                state.totalBaus += 2;
+                mostrarLog("🔑 CHAVE MESTRA! Ganhou +2 Baús de uma vez!");
+                playChest();
+            } else {
+                state.totalBaus += 1;
+                playChest();
+            }
+
+            mostrarLog(`Inimigo destruído! Ganhou +${ouroGanho} ouro e +${xpGanho} XP.`);
+
+            state.estagio += 1;
+            
+            if (state.estagio > state.maxEstagioAlcancado) {
+                state.maxEstagioAlcancado = state.estagio;
+            }
+            
+            const stats = calcularAtributosHeroi();
+            state.heroiHp = stats.vidaMax;
+
+            salvarDados();
+            atualizarTelaPrincipal();
+            
+            setTimeout(() => {
+                gerarInimigo();
+            }, 300);
+        }
+
+        function derrotarHeroi() {
+            playDeath();
+            
+            const estagioAntigo = state.estagio;
+            const ultimoBossDerrotado = Math.floor((estagioAntigo - 1) / 10) * 10;
+            const estagioRecuo = Math.max(1, ultimoBossDerrotado + 1);
+            
+            state.estagio = estagioRecuo;
+            
+            const stats = calcularAtributosHeroi();
+            state.heroiHp = stats.vidaMax;
+
+            tempoAtaqueAcumulado = 0;
+            tempoAtaqueMonstroAcumulado = 0;
+
+            mostrarLog(`Desmontado no estágio ${estagioAntigo}! Retornando à zona segura do estágio ${state.estagio}...`);
+
+            salvarDados();
+            atualizarTelaPrincipal();
+            gerarInimigo();
+        }
+
+        function receberXp(qtd) {
+            state.xp += qtd;
+            if (state.xp >= state.xpMax) {
+                state.xp -= state.xpMax;
+                state.nivelHeroi += 1;
+                state.xpMax = Math.ceil(state.xpMax * 1.25 + 50);
+                playLvlUp();
+                
+                const heroiVisual = document.getElementById('visual-heroi');
+                heroiVisual.classList.add('scale-125', 'duration-300');
+                setTimeout(() => heroiVisual.classList.remove('scale-125'), 500);
+                
+                const stats = calcularAtributosHeroi();
+                state.heroiHp = stats.vidaMax;
+            }
+        }
+
+        function mostrarLog(mensagem) {
+            const logEl = document.getElementById('footer-logs');
+            logEl.textContent = mensagem;
+            logEl.className = "text-sm text-cyan-400 font-bold tracking-wide transition-all duration-300";
+            setTimeout(() => {
+                logEl.className = "text-sm text-zinc-500 transition-all duration-300";
+            }, 3000);
+        }
+
+        function abrirBau() {
+            if (state.totalBaus <= 0 || lootDropado !== null) return;
+            
+            state.totalBaus -= 1;
+            lootOrigemSlot = null; 
+            const itemGerado = gerarLootAleatorio();
+            playChest();
+
+            if (verificarFiltroAutoVenda(itemGerado)) {
+                realizarAutoVendaInstante(itemGerado);
+                lootDropado = null;
+                document.getElementById('painel-loot').classList.add('hidden');
+                document.getElementById('painel-loot-vazio').classList.remove('hidden');
+            } else {
+                lootDropado = itemGerado;
+                mostrarPainelLoot(lootDropado);
+            }
+
+            salvarDados();
+            atualizarTelaPrincipal();
+        }
+
+        function mostrarPainelLoot(item) {
+            document.getElementById('painel-loot-vazio').classList.add('hidden');
+            const painel = document.getElementById('painel-loot');
+            painel.classList.remove('hidden');
+
+            const txtRaridade = document.getElementById('loot-raridade');
+            txtRaridade.textContent = raridades[item.raridade].nome;
+            txtRaridade.style.backgroundColor = raridades[item.raridade].cor;
+            txtRaridade.style.color = '#000';
+
+            document.getElementById('loot-tipo').textContent = item.tipo.toUpperCase();
+            document.getElementById('loot-nome').textContent = item.nome;
+            document.getElementById('loot-nome').style.color = raridades[item.raridade].cor;
+
+            const btnEquipar = document.getElementById('btn-loot-acao-equipar');
+            if (lootOrigemSlot) {
+                btnEquipar.textContent = 'FECHAR';
+                btnEquipar.className = "bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-white py-1 text-sm font-bold rounded";
+            } else {
+                btnEquipar.textContent = 'EQUIPAR';
+                btnEquipar.className = "bg-emerald-900 hover:bg-emerald-800 border border-emerald-600 text-white py-1 text-sm font-bold rounded";
+            }
+
+            const spriteKey = item.tipo === 'arma' ? (item.atributos.subTipo === 'Arco' ? 'arma_bow' : 'arma_sword') : item.tipo;
+            document.getElementById('loot-icon-wrapper').innerHTML = buildItemPixelArtSVG(spriteKey, raridades[item.raridade].cor);
+
+            const attrContainer = document.getElementById('loot-atributos');
+            attrContainer.innerHTML = '';
+
+            let atualEquipado = state.equipado[item.tipo];
+
+            for (const [key, val] of Object.entries(item.atributos)) {
+                if (key === 'subTipo') continue;
+
+                let diferenca = val;
+                let textoDiferenca = '';
+                
+                if (atualEquipado) {
+                    const valAtual = atualEquipado.atributos[key] || 0;
+                    diferenca = val - valAtual;
+                    
+                    if (key === 'velocidade') {
+                        diferenca = valAtual - val;
+                        textoDiferenca = diferenca > 0 ? `(-${diferenca.toFixed(2)}s)` : `(+${Math.abs(diferenca).toFixed(2)}s)`;
+                    } else {
+                        textoDiferenca = diferenca >= 0 ? `(+${diferenca})` : `(${diferenca})`;
+                    }
+                } else {
+                    textoDiferenca = key === 'velocidade' ? `(${val}s)` : `(+${val})`;
+                }
+
+                const dClass = diferenca >= 0 ? 'text-emerald-400' : 'text-red-400';
+                const label = key === 'dano' ? 'Dano Base' : key === 'vida' ? 'HP Base' : key === 'crit' ? 'Crítico Base' : 'Recarga';
+                const unidade = key === 'crit' ? '%' : key === 'velocidade' ? 's' : '';
+
+                attrContainer.innerHTML += `
+                    <div class="flex justify-between items-center leading-tight font-sans text-[11px] border-b border-zinc-900/60 pb-0.5">
+                        <span class="text-zinc-500 font-bold">${label}:</span>
+                        <span class="font-bold text-white">${val}${unidade} <span class="${dClass} font-mono font-bold text-[10px]">${textoDiferenca}</span></span>
+                    </div>
+                `;
+            }
+
+            if (item.subStats && Object.keys(item.subStats).length > 0) {
+                attrContainer.innerHTML += `<p class="text-[10px] text-purple-400 border-t border-zinc-900/60 pt-1 mt-1 font-bold uppercase tracking-widest font-sans">Efeitos Secundários</p>`;
+                
+                for (const [key, val] of Object.entries(item.subStats)) {
+                    let lbl = key;
+                    let uni = '';
+                    if (key === 'crit') { lbl = 'Aumento Crítico'; uni = '%'; }
+                    if (key === 'evasao') { lbl = 'Chance Evasão'; uni = '%'; }
+                    if (key === 'atqDuplo') { lbl = 'Ataque Duplo'; uni = '%'; }
+                    if (key === 'danoCrit') { lbl = 'Dano Crítico'; uni = '%'; }
+                    if (key === 'vida') { lbl = 'Vida Bônus'; }
+                    if (key === 'dano') { lbl = 'Dano Bônus'; }
+
+                    attrContainer.innerHTML += `
+                        <div class="flex justify-between items-center leading-tight font-sans text-[11px] text-purple-300">
+                            <span>✦ ${lbl}:</span>
+                            <span class="font-mono font-bold">+${val}${uni}</span>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function equiparLoot() {
+            if (!lootDropado) return;
+            
+            if (lootOrigemSlot) {
+                lootDropado = null;
+                lootOrigemSlot = null;
+                document.getElementById('painel-loot').classList.add('hidden');
+                document.getElementById('painel-loot-vazio').classList.remove('hidden');
+                return;
+            }
+
+            const tipo = lootDropado.tipo;
+            state.equipado[tipo] = lootDropado;
+            
+            lootDropado = null;
+            document.getElementById('painel-loot').classList.add('hidden');
+            document.getElementById('painel-loot-vazio').classList.remove('hidden');
+            
+            const stats = calcularAtributosHeroi();
+            state.heroiHp = Math.min(state.heroiHp, stats.vidaMax);
+
+            playLvlUp();
+            salvarDados();
+            atualizarTelaPrincipal();
+        }
+
+        function venderLoot() {
+            if (!lootDropado) return;
+
+            if (lootOrigemSlot) {
+                state.equipado[lootOrigemSlot] = null;
+                lootOrigemSlot = null;
+            }
+
+            const valoresVenda = {
+                comum: { o: 10, p: 1 },
+                incomum: { o: 25, p: 3 },
+                incoomum: { o: 25, p: 3 },
+                raro: { o: 60, p: 8 },
+                epico: { o: 150, p: 20 },
+                mistico: { o: 300, p: 40 },
+                lendario: { o: 600, p: 80 },
+                ancestral: { o: 1200, p: 160 },
+                reliquia: { o: 2500, p: 350 },
+                divino: { o: 5000, p: 750 },
+                eterno: { o: 12000, p: 2000 }
+            };
+
+            const recompensa = valoresVenda[lootDropado.raridade];
+            
+            let ouroGanho = recompensa.o;
+            let goldMult = 1;
+            if (state.pets.ativo === 'slime' && state.pets.slime > 0) {
+                goldMult += state.pets.slime * 0.08;
+            }
+            goldMult += (state.pontosTalentoAtribuidos.luck || 0) * 0.05;
+            ouroGanho = Math.ceil(ouroGanho * goldMult);
+
+            let poeiraGanho = recompensa.p;
+            poeiraGanho = Math.ceil(poeiraGanho * (1 + (state.pontosTalentoAtribuidos.stardust || 0) * 0.08));
+
+            state.ouro += ouroGanho;
+            state.poeira += poeiraGanho;
+            
+            lootDropado = null;
+            document.getElementById('painel-loot').classList.add('hidden');
+            document.getElementById('painel-loot-vazio').classList.remove('hidden');
+            
+            playGold();
+            salvarDados();
+            atualizarTelaPrincipal();
+        }
+
+        function mostrarInfoEquipado(slot) {
+            const item = state.equipado[slot];
+            if (!item) return;
+            
+            lootDropado = item;
+            lootOrigemSlot = slot; 
+            mostrarPainelLoot(item);
+        }
+
+        function comprarUpgradeBau() {
+            const custo = Math.ceil(50 * Math.pow(1.4, state.upgrades.bau));
+            if (state.ouro >= custo) {
+                state.ouro -= custo;
+                state.upgrades.bau += 1;
+                playLvlUp();
+                salvarDados();
+                atualizarTelaPrincipal();
+            }
+        }
+
+        function uparPet(petId) {
+            const nivelAtual = state.pets[petId] || 0;
+            const custo = Math.ceil(100 * Math.pow(1.5, nivelAtual));
+            if (state.poeira >= custo) {
+                state.poeira -= custo;
+                state.pets[petId] = nivelAtual + 1;
+                playLvlUp();
+                salvarDados();
+                atualizarTelaPrincipal();
+            }
+        }
+
+        function selecionarPetAtivo() {
+            const select = document.getElementById('select-pet-ativo');
+            state.pets.ativo = select.value;
+            salvarDados();
+            atualizarTelaPrincipal();
+        }
+
+        function triggerReencarnacao() {
+            const fragsRecompensa = calcularAlmasRecompensa();
+            if (fragsRecompensa <= 0) return;
+
+            if (confirm("Você tem certeza de que deseja Reencarnar?\nSeu estágio, ouro, nível do herói e itens atuais serão resetados. Suas almas permanentes, upgrades de baú e pets serão preservados!")) {
+                state.fragmentosAlma += fragsRecompensa;
+                
+                // Reset de Progresso da Rodada
+                state.ouro = 0;
+                state.nivelHeroi = 1;
+                state.xp = 0;
+                state.xpMax = 100;
+                state.estagio = 1;
+                state.totalBaus = 3;
+                state.equipado = { arma: null, elmo: null, colar: null, peitoral: null, calca: null, bota: null, anel: null };
+                
+                lootDropado = null;
+                lootOrigemSlot = null;
+
+                const stats = calcularAtributosHeroi();
+                state.heroiHp = stats.vidaMax;
+
+                salvarDados();
+                atualizarTelaPrincipal();
+                gerarInimigo();
+                playLvlUp();
+                mostrarLog(`💀 Reencarnação concluída! Você ganhou +${fragsRecompensa} Fragmentos de Alma.`);
+            }
+        }
+
+        function comprarSoulBlessing(upgradeId) {
+            const nivelAtual = state.soulUpgrades[upgradeId] || 0;
+            if (nivelAtual >= 10) {
+                mostrarLog("Nível máximo de Benção de Alma alcançado!");
+                return;
+            }
+            const custo = nivelAtual + 1; 
+            if (state.fragmentosAlma >= custo) {
+                state.fragmentosAlma -= custo;
+                state.soulUpgrades[upgradeId] = nivelAtual + 1;
+                playLvlUp();
+                salvarDados();
+                atualizarTelaPrincipal();
+            }
+        }
+
+        function calcularAlmasRecompensa() {
+            if (state.estagio < 100) return 0;
+            return Math.max(0, Math.floor((state.estagio - 100) / 10) + 1);
+        }
+
+        function mudarAba(id) {
+            abaAtiva = id;
+            const abas = ['loja', 'pets', 'reincarnar'];
+            abas.forEach(aba => {
+                const btn = document.getElementById(`tab-${aba}`);
+                const div = document.getElementById(`conteudo-${aba}`);
+                if (aba === id) {
+                    btn.className = "flex-1 text-center py-1 bg-zinc-900 border-t border-x border-zinc-800 text-cyan-400 font-bold rounded-t";
+                    div.classList.remove('hidden');
+                } else {
+                    btn.className = "flex-1 text-center py-1 bg-black border-b border-zinc-900 text-zinc-500 font-bold rounded-t";
+                    div.classList.add('hidden');
+                }
+            });
+        }
+
+        function toggleFiltro() {
+            const painelLoot = document.getElementById('painel-loot');
+            const painelLootVazio = document.getElementById('painel-loot-vazio');
+            const painelFiltro = document.getElementById('painel-filtro');
+
+            if (painelFiltro.classList.contains('hidden')) {
+                painelLoot.classList.add('hidden');
+                painelLootVazio.classList.add('hidden');
+                painelFiltro.classList.remove('hidden');
+            } else {
+                painelFiltro.classList.add('hidden');
+                if (lootDropado) {
+                    painelLoot.classList.remove('hidden');
+                } else {
+                    painelLootVazio.classList.remove('hidden');
+                }
+            }
+        }
+
+        function atualizarFiltro() {
+            state.filtro.raridade = document.getElementById('select-filtro-raridade').value;
+            state.filtro.preservar.crit = document.getElementById('chk-pres-crit').checked;
+            state.filtro.preservar.evasao = document.getElementById('chk-pres-evasao').checked;
+            state.filtro.preservar.atqDuplo = document.getElementById('chk-pres-atq-duplo').checked;
+            state.filtro.preservar.danoCrit = document.getElementById('chk-pres-dano-crit').checked;
+            state.filtro.preservar.vida = document.getElementById('chk-pres-vida').checked;
+            state.filtro.preservar.dano = document.getElementById('chk-pres-dano').checked;
+            salvarDados();
+        }
+
+        function abrirModalRaridades() {
+            const levelBau = state.upgrades.bau;
+            document.getElementById('modal-level-bau-indicator').textContent = `Nv ${levelBau}`;
+            
+            const listEl = document.getElementById('modal-raridades-lista');
+            listEl.innerHTML = '';
+            
+            const chances = calcularChancesDrop(levelBau);
+            
+            for (const [key, config] of Object.entries(raridades)) {
+                if (key === 'incoomum') continue; 
+                const pct = chances[key] || 0;
+                listEl.innerHTML += `
+                    <div class="flex justify-between items-center bg-black/60 p-2 border border-zinc-900 rounded font-sans">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full" style="background-color: ${config.cor}"></span>
+                            <span class="font-bold uppercase tracking-wider text-xs" style="color: ${config.cor}">${config.nome}</span>
+                        </div>
+                        <div class="text-right text-xs">
+                            <p class="text-white font-mono font-bold">${pct.toFixed(3)}%</p>
+                            <p class="text-[9px] text-zinc-500 font-sans leading-none mt-0.5">Dano/Vida x${config.multiplicador.toFixed(1)}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('modal-raridades').classList.remove('hidden');
+        }
+
+        function fecharModalRaridades() {
+            document.getElementById('modal-raridades').classList.add('hidden');
+        }
+        function abrirModalTalentos() {
+            atualizarVisualTalentos();
+            document.getElementById('modal-talentos').classList.remove('hidden');
+        }
+
+        function fecharModalTalentos() {
+            document.getElementById('modal-talentos').classList.add('hidden');
+        }
+
+        function calcularPontosTotaisTalento() {
+            return state.nivelHeroi - 1;
+        }
+
+        function calcularPontosGastosTalento() {
+            return Object.values(state.pontosTalentoAtribuidos).reduce((sum, val) => sum + val, 0);
+        }
+
+        function uparTalento(talentId) {
+            const total = calcularPontosTotaisTalento();
+            const gastos = calcularPontosGastosTalento();
+            const disponiveis = total - gastos;
+
+            if (disponiveis <= 0) {
+                mostrarLog("⭐ Sem Pontos de Talento disponíveis!");
+                return;
+            }
+
+            const nivelAtual = state.pontosTalentoAtribuidos[talentId] || 0;
+            if (nivelAtual >= 10) {
+                mostrarLog("⭐ Talento já está no nível máximo!");
+                return;
+            }
+
+            state.pontosTalentoAtribuidos[talentId] = nivelAtual + 1;
+            playLvlUp();
+            salvarDados();
+            atualizarTelaPrincipal();
+            atualizarVisualTalentos();
+        }
+
+        function resetarTalentos() {
+            for (const key in state.pontosTalentoAtribuidos) {
+                state.pontosTalentoAtribuidos[key] = 0;
+            }
+            playDeath();
+            salvarDados();
+            atualizarTelaPrincipal();
+            atualizarVisualTalentos();
+            mostrarLog("🔄 Árvore de talentos redefinida!");
+        }
+
+        function atualizarVisualTalentos() {
+            const total = calcularPontosTotaisTalento();
+            const gastos = calcularPontosGastosTalento();
+            const disponiveis = total - gastos;
+
+            document.getElementById('txt-pontos-disponiveis').textContent = disponiveis;
+            document.getElementById('txt-pontos-disponiveis-btn').textContent = disponiveis;
+
+            const talentKeys = ['sharpBones', 'precision', 'graveVigor', 'phantomStrike', 'luck', 'stardust', 'relicHunter', 'masterKey'];
+            
+            talentKeys.forEach(key => {
+                const lvl = state.pontosTalentoAtribuidos[key] || 0;
+                document.getElementById(`lvl-talent-${key}`).textContent = `[${lvl}/10]`;
+                
+                const btn = document.getElementById(`btn-talent-${key}`);
+                if (disponiveis <= 0 || lvl >= 10) {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-40', 'cursor-not-allowed');
+                } else {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-40', 'cursor-not-allowed');
+                }
+            });
+        }
+
+        function abrirModalBackup() {
+            const saveJson = localStorage.getItem('loot_idle_save');
+            const codeInput = document.getElementById('txt-backup-code');
+            if (saveJson) {
+                try {
+                    const base64 = btoa(unescape(encodeURIComponent(saveJson)));
+                    codeInput.value = base64;
+                } catch(e) {
+                    codeInput.value = "Erro ao gerar backup.";
+                }
+            } else {
+                codeInput.value = "Sem dados salvos.";
+            }
+            document.getElementById('import-area').classList.add('hidden');
+            document.getElementById('txt-import-code').value = '';
+            document.getElementById('modal-backup').classList.remove('hidden');
+        }
+
+        function fecharModalBackup() {
+            document.getElementById('modal-backup').classList.add('hidden');
+        }
+
+        function copiarCodigoSave() {
+            const textarea = document.getElementById('txt-backup-code');
+            textarea.select();
+            document.execCommand('copy');
+            mostrarLog("💾 Código de save copiado com sucesso!");
+        }
+
+        function prepararImportacao() {
+            document.getElementById('import-area').classList.remove('hidden');
+            document.getElementById('txt-import-code').focus();
+        }
+
+        function confirmarImportacao() {
+            const code = document.getElementById('txt-import-code').value.trim();
+            if (!code) {
+                mostrarLog("⚠️ Insira o código de backup antes de confirmar.");
+                return;
+            }
+            try {
+                const decoded = decodeURIComponent(escape(atob(code)));
+                const parsed = JSON.parse(decoded);
+                
+                if (parsed && typeof parsed === 'object' && 'estagio' in parsed) {
+                    state = parsed;
+                    if (!state.pets) {
+                        state.pets = { ativo: 'nenhum', bat: 0, ghost: 0, slime: 0 };
+                    }
+                    if (state.fragmentosAlma === undefined) state.fragmentosAlma = 0;
+                    if (!state.soulUpgrades) {
+                        state.soulUpgrades = { forca: 0, vitalidade: 0, fortuna: 0 };
+                    }
+                    if (!state.filtro) {
+                        state.filtro = { raridade: 'nenhum', preservar: { crit: false, evasao: false, atqDuplo: false, danoCrit: false, vida: false, dano: false } };
+                    }
+                    if (!state.pontosTalentoAtribuidos) {
+                        state.pontosTalentoAtribuidos = { sharpBones: 0, precision: 0, graveVigor: 0, phantomStrike: 0, luck: 0, stardust: 0, relicHunter: 0, masterKey: 0 };
+                    }
+
+                    salvarDados();
+                    carregarDados();
+                    atualizarTelaPrincipal();
+                    gerarInimigo();
+                    fecharModalBackup();
+                    playLvlUp();
+                    mostrarLog("💾 Progresso importado com sucesso!");
+                } else {
+                    mostrarLog("⚠️ Código inválido ou incompatível.");
+                }
+            } catch(e) {
+                mostrarLog("⚠️ Erro ao decodificar! Verifique o código.");
+            }
+        }
+        function atualizarHpBarInimigo() {
+            document.getElementById('txt-monstro-hp').textContent = `${monstroAtual.hp} / ${monstroAtual.hpMax}`;
+            const pct = (monstroAtual.hp / monstroAtual.hpMax) * 100;
+            document.getElementById('bar-monstro-hp').style.width = `${pct}%`;
+        }
+
+        function atualizarHpBarHeroi() {
+            const stats = calcularAtributosHeroi();
+            document.getElementById('txt-heroi-hp').textContent = `${state.heroiHp} / ${stats.vidaMax}`;
+            const pct = (state.heroiHp / stats.vidaMax) * 100;
+            document.getElementById('bar-heroi-hp').style.width = `${pct}%`;
+        }
+
+        function atualizarTelaPrincipal() {
+            document.getElementById('txt-ouro').textContent = state.ouro;
+            document.getElementById('txt-poeira').textContent = state.poeira;
+            
+            document.getElementById('heroi-level').textContent = state.nivelHeroi;
+            document.getElementById('heroi-xp-txt').textContent = `${state.xp}/${state.xpMax}`;
+            document.getElementById('heroi-xp-bar').style.width = `${(state.xp / state.xpMax) * 100}%`;
+
+            const stats = calcularAtributosHeroi();
+            document.getElementById('stat-dano').textContent = stats.dano;
+            document.getElementById('stat-vel').textContent = `${stats.velocidade}s`;
+            document.getElementById('stat-vida').textContent = stats.vidaMax;
+            document.getElementById('stat-crit').textContent = `${stats.crit}%`;
+            document.getElementById('stat-evasao').textContent = `${stats.evasao}%`;
+            document.getElementById('stat-atq-duplo').textContent = `${stats.atqDuplo}%`;
+            document.getElementById('stat-dano-crit').textContent = `${stats.danoCrit}%`;
+            const total = calcularPontosTotaisTalento();
+            const gastos = calcularPontosGastosTalento();
+            const disponiveis = total - gastos;
+            document.getElementById('txt-pontos-disponiveis-btn').textContent = disponiveis;
+
+            atualizarHpBarHeroi();
+
+            let posturaText = 'Punhos de Osso 💀';
+            if (state.equipado.arma) {
+                const isBow = state.equipado.arma.atributos.subTipo === 'Arco';
+                posturaText = isBow ? 'Agilidade: Arco 🏹' : 'Ataque: Espada ⚔️';
+            }
+            document.getElementById('heroi-postura').textContent = posturaText;
+            
+            document.getElementById('visual-heroi').innerHTML = buildPixelArtSVG(SPRITES.hero_naked);
+            document.getElementById('combate-estagio').textContent = state.estagio;
+            document.getElementById('txt-total-baus').textContent = state.totalBaus;
+            
+            const btnAbrir = document.getElementById('btn-abrir-bau');
+            if (state.totalBaus <= 0 || lootDropado !== null) {
+                btnAbrir.disabled = true;
+                btnAbrir.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                btnAbrir.disabled = false;
+                btnAbrir.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            const slots = ['arma', 'elmo', 'colar', 'peitoral', 'calca', 'bota', 'anel'];
+            slots.forEach(slot => {
+                const item = state.equipado[slot];
+                const label = document.getElementById(`slot-${slot}-nome`);
+                const wrapper = document.getElementById(`slot-${slot}`);
+                if (label && wrapper) {
+                    if (item) {
+                        label.textContent = item.nome;
+                        label.style.color = raridades[item.raridade].cor;
+                        wrapper.style.borderColor = raridades[item.raridade].cor;
+                        if (item.raridade === 'eterno' || item.raridade === 'divino') {
+                            wrapper.style.borderWidth = '2px';
+                        } else {
+                            wrapper.style.borderWidth = '1px';
+                        }
+                    } else {
+                        label.textContent = 'Nenhum';
+                        label.style.color = '#52525b';
+                        wrapper.style.borderColor = '#18181b';
+                        wrapper.style.borderWidth = '1px';
+                    }
+                }
+            });
+
+            const custoBau = Math.ceil(50 * Math.pow(1.4, state.upgrades.bau));
+            document.getElementById('up-bau-nv').textContent = state.upgrades.bau;
+            document.getElementById('up-bau-custo').textContent = `${custoBau} Ouro`;
+            const costBat = Math.ceil(100 * Math.pow(1.5, state.pets.bat || 0));
+            const costGhost = Math.ceil(100 * Math.pow(1.5, state.pets.ghost || 0));
+            const costSlime = Math.ceil(100 * Math.pow(1.5, state.pets.slime || 0));
+
+            document.getElementById('pet-bat-nv').textContent = state.pets.bat || 0;
+            document.getElementById('btn-up-bat').textContent = `${costBat} Poeira`;
+            document.getElementById('pet-ghost-nv').textContent = state.pets.ghost || 0;
+            document.getElementById('btn-up-ghost').textContent = `${costGhost} Poeira`;
+            document.getElementById('pet-slime-nv').textContent = state.pets.slime || 0;
+            document.getElementById('btn-up-slime').textContent = `${costSlime} Poeira`;
+            const visualPet = document.getElementById('visual-pet');
+            if (state.pets.ativo && state.pets.ativo !== 'nenhum') {
+                visualPet.innerHTML = buildPixelArtSVG(SPRITES[`pet_${state.pets.ativo}`]);
+                visualPet.classList.remove('hidden');
+            } else {
+                visualPet.classList.add('hidden');
+                visualPet.innerHTML = '';
+            }
+            document.getElementById('select-pet-ativo').value = state.pets.ativo;
+            if (state.maxEstagioAlcancado >= 100) {
+                document.getElementById('reincarnar-bloqueado').classList.add('hidden');
+                document.getElementById('reincarnar-disponivel').classList.remove('hidden');
+                document.getElementById('header-fragmentos-container').style.display = 'flex';
+                document.getElementById('txt-fragmentos').textContent = state.fragmentosAlma;
+
+                const recompensaAlmas = calcularAlmasRecompensa();
+                document.getElementById('alma-recompensa-calculada').textContent = recompensaAlmas;
+
+                // Bênçãos
+                const nvForca = state.soulUpgrades.forca || 0;
+                document.getElementById('soul-forca-nv').textContent = nvForca;
+                document.getElementById('btn-soul-forca').textContent = nvForca >= 10 ? "MÁXIMO" : `${nvForca + 1} Frag.`;
+
+                const nvVitalidade = state.soulUpgrades.vitalidade || 0;
+                document.getElementById('soul-vitalidade-nv').textContent = nvVitalidade;
+                document.getElementById('btn-soul-vitalidade').textContent = nvVitalidade >= 10 ? "MÁXIMO" : `${nvVitalidade + 1} Frag.`;
+
+                const nvFortuna = state.soulUpgrades.fortuna || 0;
+                document.getElementById('soul-fortuna-nv').textContent = nvFortuna;
+                document.getElementById('btn-soul-fortuna').textContent = nvFortuna >= 10 ? "MÁXIMO" : `${nvFortuna + 1} Frag.`;
+            } else {
+                document.getElementById('reincarnar-bloqueado').classList.remove('hidden');
+                document.getElementById('reincarnar-disponivel').classList.add('hidden');
+                document.getElementById('header-fragmentos-container').style.display = 'none';
+            }
+            document.getElementById('select-filtro-raridade').value = state.filtro.raridade || 'nenhum';
+            document.getElementById('chk-pres-crit').checked = state.filtro.preservar.crit || false;
+            document.getElementById('chk-pres-evasao').checked = state.filtro.preservar.evasao || false;
+            document.getElementById('chk-pres-atq-duplo').checked = state.filtro.preservar.atqDuplo || false;
+            document.getElementById('chk-pres-dano-crit').checked = state.filtro.preservar.danoCrit || false;
+            document.getElementById('chk-pres-vida').checked = state.filtro.preservar.vida || false;
+            document.getElementById('chk-pres-dano').checked = state.filtro.preservar.dano || false;
+        }
+
+        function salvarDados() {
+            localStorage.setItem('loot_idle_save', JSON.stringify(state));
+        }
+
+        function carregarDados() {
+            const salvo = localStorage.getItem('loot_idle_save');
+            if (salvo) {
+                try {
+                    state = JSON.parse(salvo);
+                    
+                    if (!state.upgrades) {
+                        state.upgrades = { bau: 1 };
+                    }
+                    if (!state.equipado) {
+                        state.equipado = { arma: null, elmo: null, colar: null, peitoral: null, calca: null, bota: null, anel: null };
+                    } else {
+                        if (state.equipado.anel1 !== undefined) {
+                            state.equipado.anel = state.equipado.anel1;
+                            delete state.equipado.anel1;
+                            delete state.equipado.anel2;
+                        }
+                        if (state.equipado.armadura !== undefined) {
+                            state.equipado.peitoral = state.equipado.armadura;
+                            delete state.equipado.armadura;
+                        }
+                        if (state.equipado.colar === undefined) state.equipado.colar = null;
+                        if (state.equipado.calca === undefined) state.equipado.calca = null;
+                        if (state.equipado.bota === undefined) state.equipado.bota = null;
+                        if (state.equipado.anel === undefined) state.equipado.anel = null;
+                    }
+
+                    if (!state.pets) {
+                        state.pets = { ativo: 'nenhum', bat: 0, ghost: 0, slime: 0 };
+                    }
+                    if (state.fragmentosAlma === undefined) state.fragmentosAlma = 0;
+                    if (!state.soulUpgrades) {
+                        state.soulUpgrades = { forca: 0, vitalidade: 0, fortuna: 0 };
+                    }
+                    if (!state.filtro) {
+                        state.filtro = { raridade: 'nenhum', preservar: { crit: false, evasao: false, atqDuplo: false, danoCrit: false, vida: false, dano: false } };
+                    }
+                    if (!state.pontosTalentoAtribuidos) {
+                        state.pontosTalentoAtribuidos = { sharpBones: 0, precision: 0, graveVigor: 0, phantomStrike: 0, luck: 0, stardust: 0, relicHunter: 0, masterKey: 0 };
+                    }
+
+                    const stats = calcularAtributosHeroi();
+                    state.heroiHp = stats.vidaMax;
+                } catch(e) {}
+            }
+        }
+
+        function abrirModalReset() {
+            document.getElementById('modal-reset').classList.remove('hidden');
+        }
+
+        function fecharModalReset() {
+            document.getElementById('modal-reset').classList.add('hidden');
+        }
+
+        function confirmarResetarJogo() {
+            fecharModalReset();
+            localStorage.removeItem('loot_idle_save');
+            state = {
+                ouro: 0,
+                poeira: 0,
+                fragmentosAlma: 0,
+                nivelHeroi: 1,
+                xp: 0,
+                xpMax: 100,
+                estagio: 1,
+                totalBaus: 3,
+                heroiHp: 100,
+                maxEstagioAlcancado: 1,
+                upgrades: { bau: 1 },
+                equipado: { arma: null, elmo: null, colar: null, peitoral: null, calca: null, bota: null, anel: null },
+                pets: { ativo: 'nenhum', bat: 0, ghost: 0, slime: 0 },
+                soulUpgrades: { forca: 0, vitalidade: 0, fortuna: 0 },
+                filtro: { raridade: 'nenhum', preservar: { crit: false, evasao: false, atqDuplo: false, danoCrit: false, vida: false, dano: false } },
+                pontosTalentoAtribuidos: { sharpBones: 0, precision: 0, graveVigor: 0, phantomStrike: 0, luck: 0, stardust: 0, relicHunter: 0, masterKey: 0 }
+            };
+            lootDropado = null;
+            lootOrigemSlot = null;
+            document.getElementById('painel-loot').classList.add('hidden');
+            document.getElementById('painel-loot-vazio').classList.remove('hidden');
+            
+            const stats = calcularAtributosHeroi();
+            state.heroiHp = stats.vidaMax;
+
+            salvarDados();
+            atualizarTelaPrincipal();
+            gerarInimigo();
+            mostrarLog("Seu esqueleto renasceu do zero.");
+        }
+        let ultimoFrameTime = Date.now();
+
+        function gameLoop() {
+            const agora = Date.now();
+            const delta = (agora - ultimoFrameTime) / 1000;
+            ultimoFrameTime = agora;
+
+            const stats = calcularAtributosHeroi();
+            
+            tempoAtaqueAcumulado += delta;
+            let pctProgresso = (tempoAtaqueAcumulado / stats.velocidade) * 100;
+            if (pctProgresso >= 100) {
+                baterNoMonstro();
+                tempoAtaqueAcumulado = 0;
+                pctProgresso = 0;
+            }
+
+            tempoAtaqueMonstroAcumulado += delta;
+            if (tempoAtaqueMonstroAcumulado >= 2.2) {
+                monstroAtacar();
+                tempoAtaqueMonstroAcumulado = 0;
+            }
+
+            document.getElementById('bar-tempo-ataque').style.width = `${pctProgresso}%`;
+            document.getElementById('txt-tempo-ataque').textContent = `${tempoAtaqueAcumulado.toFixed(1)}s / ${stats.velocidade}s`;
+
+            requestAnimationFrame(gameLoop);
+        }
+        carregarDados();
+        atualizarTelaPrincipal();
+        gerarInimigo();
+        requestAnimationFrame(gameLoop);
+
+    </script>
+</body>
+</html>
